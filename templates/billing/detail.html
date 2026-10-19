@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import action_btn %}
+{% block title %}{{ inv.number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ inv.number }}</h1><p class="text-muted"><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span> · {{ inv.created_at.strftime('%d %b %Y') }}</p></div>
+    <div class="btn-group">
+        <a href="{{ url_for('billing.index') if current_user.role == 'admin' else url_for('billing.index') }}" class="btn btn-secondary">{{ _('Back') }}</a>
+        <a href="{{ url_for('billing.pdf', inv_id=inv.id) }}" class="btn btn-secondary">{{ icon('file', 16) }} {{ _('Receipt') if inv.status == 'paid' else _('Invoice') }} PDF</a>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card"><div class="card-body">
+        <ul class="info-list">
+            <li><span>{{ _('Patient') }}</span><span>{{ inv.patient.user.name }}</span></li>
+            <li><span>{{ _('Doctor') }}</span><span>{{ inv.doctor.user.name }} · {{ inv.doctor.specialization }}</span></li>
+            <li><span>{{ _('Visit') }}</span><span>{{ inv.appointment.date.strftime('%d %b %Y') }}, {{ inv.appointment.time.strftime('%I:%M %p') }}</span></li>
+            <li><span>{{ _('Consultation fee') }}</span><span>₹{{ '{:,.2f}'.format(inv.amount) }}</span></li>
+            <li><span>{{ _('Discount') }}</span><span>₹{{ '{:,.2f}'.format(inv.discount or 0) }}</span></li>
+            {% if inv.status == 'paid' %}
+            <li><span>{{ _('Paid') }}</span><span>{{ inv.paid_at.strftime('%d %b %Y %H:%M') }} · {{ (inv.method or '')|capitalize }}{% if inv.paid_by %} · {{ inv.paid_by.name }}{% endif %}</span></li>
+            {% endif %}
+            {% if inv.notes %}<li><span>{{ _('Notes') }}</span><span>{{ inv.notes }}</span></li>{% endif %}
+        </ul>
+        <p class="mt-2"><span class="text-muted">{{ _('Total') }}</span><br><span class="invoice-amount">₹{{ '{:,.2f}'.format(inv.total) }}</span></p>
+    </div></div>
+
+    {% if inv.status == 'unpaid' %}
+    <div class="card">
+        <div class="card-header">{{ _('Record payment') }}</div>
+        <div class="card-body">
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {% for f in [form.method, form.discount, form.notes] %}
+                <div class="form-group {% if f.errors %}has-error{% endif %}">
+                    {{ f.label(class="form-label") }}{{ f(class="form-control") }}
+                    {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                </div>
+                {% endfor %}
+                {{ form.submit(class="btn btn-success btn-block") }}
+            </form>
+            <div class="mt-2">{{ action_btn(url_for('billing.void', inv_id=inv.id), _('Void invoice'), 'btn-danger', confirm=_('Void this invoice?')) }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

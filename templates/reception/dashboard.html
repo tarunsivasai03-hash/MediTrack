@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _('Dashboard') }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>{{ _('Front desk') }}</h1>
+    <p>{{ _('Hello') }}, {{ current_user.name.split()[0] }} · {{ total }} {{ _("appointments today") }}</p>
+    <a href="{{ url_for('reception.walk_in') }}" class="btn btn-light">{{ icon('user-plus', 18) }} {{ _('Add walk-in') }}</a>
+</section>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon blue">{{ icon('calendar', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.scheduled }}</h3><p>{{ _('Expected') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon amber">{{ icon('clock', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.waiting }}</h3><p>{{ _('Waiting') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal">{{ icon('doctor', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.in_consult }}</h3><p>{{ _('In consultation') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon green">{{ icon('check-circle', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.done }}</h3><p>{{ _('Done') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon red">{{ icon('alert', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.no_show }}</h3><p>{{ _('No-shows') }}</p></div></div>
+</div>
+
+<div class="quick-actions">
+    <a class="quick-action" href="{{ url_for('reception.queue') }}"><span class="stat-icon teal">{{ icon('list') }}</span><span><strong>{{ _('Live queue') }}</strong><small>{{ _('Check in arrivals') }}</small></span></a>
+    <a class="quick-action" href="{{ url_for('reception.book') }}"><span class="stat-icon blue">{{ icon('calendar-plus') }}</span><span><strong>{{ _('Book appointment') }}</strong><small>{{ _('For any patient') }}</small></span></a>
+    <a class="quick-action" href="{{ url_for('billing.index', status='unpaid') }}"><span class="stat-icon amber">{{ icon('receipt') }}</span><span><strong>{{ _('Unpaid bills') }}</strong><small>{{ unpaid }} {{ _('waiting for payment') }}</small></span></a>
+</div>
+{% endblock %}

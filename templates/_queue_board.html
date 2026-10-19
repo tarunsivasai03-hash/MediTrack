@@ -1,0 +1,33 @@
+{# Live queue table, filled by static/js/queue.js. `doctors` is optional (filter dropdown). #}
+{% macro queue_board(doctors=none) %}
+<div id="queue" data-url="{{ url_for('api.queue') }}" data-refresh="10">
+    {% if doctors %}
+    <div class="filter-bar">
+        <div class="form-group">
+            <label class="form-label" for="queueDoctor">{{ _('Doctor') }}</label>
+            <select id="queueDoctor" class="form-control">
+                <option value="">{{ _('All doctors') }}</option>
+                {% for d in doctors %}<option value="{{ d.id }}">{{ d.user.name }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+    <div class="queue-summary" id="queueSummary"></div>
+    <div class="card">
+        <div class="card-header">
+            {{ _("Today's queue") }}
+            <span class="queue-live"><span class="live-dot"></span> {{ _('Live') }} · <span id="queueUpdated">…</span></span>
+        </div>
+        <div class="table-responsive">
+            <table class="table-stack">
+                <thead><tr><th>{{ _('Time') }}</th><th>{{ _('Patient') }}</th><th>{{ _('Doctor') }}</th><th>{{ _('Status') }}</th><th></th></tr></thead>
+                <tbody id="queueBody"></tbody>
+            </table>
+        </div>
+        <div id="queueEmpty" class="empty-state hidden">
+            <h3>{{ _('Nobody in the queue') }}</h3>
+            <p>{{ _("Today's appointments and walk-ins will show up here.") }}</p>
+        </div>
+    </div>
+</div>
+{% endmacro %}

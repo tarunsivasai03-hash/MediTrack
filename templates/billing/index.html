@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, empty %}
+{% block title %}{{ _('Billing') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Billing') }}</h1><p class="text-muted">{{ _('Invoices are created automatically when a visit is completed.') }}</p></div></div>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon amber">{{ icon('receipt', 24) }}</div>
+        <div class="stat-details"><h3>₹{{ '{:,.0f}'.format(totals.unpaid) }}</h3><p>{{ _('Unpaid') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon green">{{ icon('check-circle', 24) }}</div>
+        <div class="stat-details"><h3>₹{{ '{:,.0f}'.format(totals.paid) }}</h3><p>{{ _('Collected') }}</p></div></div>
+</div>
+
+<form method="GET" class="filter-bar">
+    <div class="form-group"><label class="form-label" for="q">{{ _('Patient or invoice no.') }}</label>
+        <input id="q" name="q" value="{{ filters.q }}" class="form-control"></div>
+    <div class="form-group"><label class="form-label" for="status">{{ _('Status') }}</label>
+        <select id="status" name="status" class="form-control">
+            <option value="">{{ _('All') }}</option>
+            {% for s in ('unpaid', 'paid', 'void') %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s|capitalize }}</option>{% endfor %}
+        </select></div>
+    <div class="form-group"><label class="form-label" for="doctor">{{ _('Doctor') }}</label>
+        <select id="doctor" name="doctor" class="form-control">
+            <option value="">{{ _('All') }}</option>
+            {% for d in doctors %}<option value="{{ d.id }}" {{ 'selected' if filters.doctor == d.id|string }}>{{ d.user.name }}</option>{% endfor %}
+        </select></div>
+    <div class="form-group"><label class="form-label" for="from">{{ _('From') }}</label><input id="from" type="date" name="from" value="{{ filters['from'] }}" class="form-control"></div>
+    <div class="form-group"><label class="form-label" for="to">{{ _('To') }}</label><input id="to" type="date" name="to" value="{{ filters['to'] }}" class="form-control"></div>
+    <button class="btn btn-primary" type="submit">{{ _('Filter') }}</button>
+    {% if active_filters %}<a class="btn btn-secondary" href="{{ url_for('billing.index') }}">{{ _('Clear') }}</a>{% endif %}
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>{{ _('Invoice') }}</th><th>{{ _('Patient') }}</th><th>{{ _('Doctor') }}</th><th>{{ _('Total') }}</th><th>{{ _('Status') }}</th><th></th></tr></thead>
+            <tbody>
+            {% for i in page.items %}
+            <tr>
+                <td data-label="{{ _('Invoice') }}"><a href="{{ url_for('billing.detail', inv_id=i.id) }}">{{ i.number }}</a><br><small class="text-muted">{{ i.created_at.strftime('%d %b %Y') }}</small></td>
+                <td data-label="{{ _('Patient') }}">{{ i.patient.user.name }}</td>
+                <td data-label="{{ _('Doctor') }}">{{ i.doctor.user.name }}</td>
+                <td data-label="{{ _('Total') }}">₹{{ '{:,.2f}'.format(i.total) }}</td>
+                <td data-label="{{ _('Status') }}"><span class="badge badge-{{ i.status }}">{{ i.status }}</span></td>
+                <td class="row-actions"><a class="btn btn-sm btn-secondary" href="{{ url_for('billing.detail', inv_id=i.id) }}">{% if i.status == 'unpaid' %}{{ _('Take payment') }}{% else %}{{ _('View') }}{% endif %}</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}{{ empty(icon('receipt', 28), _('No invoices found'), _('Adjust the filters to see more.')) }}{% endif %}
+</div>
+{{ pagination(page, 'billing.index', **active_filters) }}
+{% endblock %}

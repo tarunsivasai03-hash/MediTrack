@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Book appointment') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Book appointment') }}</h1><p class="text-muted">{{ _('Book on behalf of a patient. It is confirmed straight away.') }}</p></div></div>
+
+<div class="card" style="max-width:760px"><div class="card-body">
+    <form method="POST" id="bookForm" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-grid">
+            <div class="form-group {% if form.patient_id.errors %}has-error{% endif %}">
+                {{ form.patient_id.label(class="form-label") }}{{ form.patient_id(class="form-control") }}
+                {% for e in form.patient_id.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+            <div class="form-group {% if form.doctor_id.errors %}has-error{% endif %}">
+                {{ form.doctor_id.label(class="form-label") }}{{ form.doctor_id(class="form-control") }}
+                {% for e in form.doctor_id.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+            <div class="form-group {% if form.date.errors %}has-error{% endif %}">
+                {{ form.date.label(class="form-label") }}{{ form.date(class="form-control", type="date", min=today) }}
+                {% for e in form.date.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+        </div>
+        <div class="form-group {% if form.time.errors %}has-error{% endif %}">
+            <span class="form-label">{{ _('Time slot') }}</span>
+            {{ form.time() }}
+            <div id="slotStatus" class="text-muted" aria-live="polite">{{ _('Choose a doctor and date to see slots.') }}</div>
+            <div class="slot-grid" id="slotGrid" role="listbox"></div>
+            {% for e in form.time.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+        </div>
+        <div class="form-group {% if form.reason.errors %}has-error{% endif %}">
+            {{ form.reason.label(class="form-label") }}{{ form.reason(class="form-control") }}
+            {% for e in form.reason.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div></div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/slots.js') }}"></script>{% endblock %}

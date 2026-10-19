@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import empty %}
+{% block title %}{{ _('Reports') }}{% endblock %}
+
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ _('Reports') }}</h1><p class="text-muted">{{ data.start.strftime('%d %b %Y') }} – {{ data.end.strftime('%d %b %Y') }}</p></div>
+    <a class="btn btn-primary" href="{{ url_for('admin.reports_xlsx', **{'from': start, 'to': end}) }}">{{ icon('download', 16) }} {{ _('Export to Excel') }}</a>
+</div>
+
+<form method="GET" class="filter-bar">
+    <div class="form-group"><label class="form-label" for="from">{{ _('From') }}</label><input id="from" type="date" name="from" value="{{ start }}" class="form-control"></div>
+    <div class="form-group"><label class="form-label" for="to">{{ _('To') }}</label><input id="to" type="date" name="to" value="{{ end }}" class="form-control"></div>
+    <button class="btn btn-primary" type="submit">{{ _('Apply') }}</button>
+</form>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon indigo">{{ icon('calendar', 24) }}</div>
+        <div class="stat-details"><h3>{{ data.total }}</h3><p>{{ _('Appointments') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon green">{{ icon('check-circle', 24) }}</div>
+        <div class="stat-details"><h3>{{ data.status.completed }}</h3><p>{{ _('Completed') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon red">{{ icon('alert', 24) }}</div>
+        <div class="stat-details"><h3>{{ data.no_show_rate }}%</h3><p>{{ _('No-show rate') }}<span class="kpi-sub">{{ data.status.no_show }} {{ _('no-shows') }}</span></p></div></div>
+    <div class="stat-card"><div class="stat-icon amber">{{ icon('clock', 24) }}</div>
+        <div class="stat-details"><h3>{{ data.cancel_rate }}%</h3><p>{{ _('Cancelled') }}<span class="kpi-sub">{{ data.status.cancelled }}</span></p></div></div>
+    <div class="stat-card"><div class="stat-icon teal">{{ icon('receipt', 24) }}</div>
+        <div class="stat-details"><h3>₹{{ '{:,.0f}'.format(data.revenue) }}</h3><p>{{ _('Revenue collected') }}<span class="kpi-sub">₹{{ '{:,.0f}'.format(data.outstanding) }} {{ _('outstanding') }}</span></p></div></div>
+</div>
+
+<div class="dashboard-grid mb-2">
+    <div class="card"><div class="card-header">{{ _('Revenue per doctor') }}</div>
+        <div class="chart-container"><canvas id="revChart" role="img" aria-label="{{ _('Revenue per doctor') }}"></canvas></div></div>
+    <div class="card"><div class="card-header">{{ _('Busiest hours') }}</div>
+        <div class="chart-container"><canvas id="hourChart" role="img" aria-label="{{ _('Busiest hours') }}"></canvas></div></div>
+</div>
+<div class="dashboard-grid mb-2">
+    <div class="card"><div class="card-header">{{ _('Busiest weekdays') }}</div>
+        <div class="chart-container"><canvas id="dayChart" role="img" aria-label="{{ _('Busiest weekdays') }}"></canvas></div></div>
+    <div class="card"><div class="card-header">{{ _('By department') }}</div>
+        {% if data.by_department %}
+        <div class="table-responsive"><table class="table-stack">
+            <thead><tr><th>{{ _('Department') }}</th><th>{{ _('Appointments') }}</th><th>{{ _('Revenue') }}</th></tr></thead>
+            <tbody>{% for r in data.by_department %}<tr>
+                <td data-label="{{ _('Department') }}">{{ r.department }}</td><td data-label="{{ _('Appointments') }}">{{ r.appointments }}</td>
+                <td data-label="{{ _('Revenue') }}">₹{{ '{:,.0f}'.format(r.revenue) }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% else %}{{ empty(icon('building', 28), _('No data'), '') }}{% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">{{ _('By doctor') }}</div>
+    {% if data.by_doctor %}
+    <div class="table-responsive"><table class="table-stack">
+        <thead><tr><th>{{ _('Doctor') }}</th><th>{{ _('Appointments') }}</th><th>{{ _('Completed') }}</th><th>{{ _('No-shows') }}</th><th>{{ _('No-show rate') }}</th><th>{{ _('Revenue') }}</th><th>{{ _('Outstanding') }}</th></tr></thead>
+        <tbody>
+        {% for r in data.by_doctor %}
+        <tr>
+            <td data-label="{{ _('Doctor') }}"><strong>{{ r.doctor }}</strong><br><small class="text-muted">{{ r.department }}</small></td>
+            <td data-label="{{ _('Appointments') }}">{{ r.appointments }}</td>
+            <td data-label="{{ _('Completed') }}">{{ r.completed }}</td>
+            <td data-label="{{ _('No-shows') }}">{{ r.no_show }}</td>
+            <td data-label="{{ _('No-show rate') }}">{{ r.no_show_rate }}%</td>
+            <td data-label="{{ _('Revenue') }}">₹{{ '{:,.0f}'.format(r.revenue) }}</td>
+            <td data-label="{{ _('Outstanding') }}">₹{{ '{:,.0f}'.format(r.outstanding) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}{{ empty(icon('chart', 28), _('No data in this period'), _('Try a wider date range.')) }}{% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.addEventListener("load", () => {
+    if (!window.Chart) return;
+    const brand = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim() || "#2563EB";
+    const bar = (id, labels, values, color) => new Chart(document.getElementById(id), {
+        type: "bar",
+        data: { labels, datasets: [{ data: values, backgroundColor: color || brand, borderRadius: 6 }] },
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+    const doctors = {{ data.by_doctor | map(attribute='doctor') | list | tojson }};
+    const revenue = {{ data.by_doctor | map(attribute='revenue') | list | tojson }};
+    bar("revChart", doctors, revenue);
+    bar("hourChart", {{ data.by_hour | map(attribute='hour') | list | tojson }}, {{ data.by_hour | map(attribute='count') | list | tojson }}, "#0EA5E9");
+    bar("dayChart", {{ data.by_weekday | map(attribute='day') | list | tojson }}, {{ data.by_weekday | map(attribute='count') | list | tojson }}, "#FF6B81");
+});
+</script>
+{% endblock %}

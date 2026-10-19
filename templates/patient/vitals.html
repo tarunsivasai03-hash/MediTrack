@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, action_btn, empty %}
+{% from "_clinical.html" import vitals_fields, vitals_chart %}
+{% block title %}My Vitals{% endblock %}
+
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>My vitals</h1><p class="text-muted">Log readings and watch the trend. Your doctor can see them during visits.</p></div></div>
+
+<div class="card mb-2">
+    <div class="card-header">Trend (last 90 days)</div>
+    {{ vitals_chart(url_for('api.my_vitals')) }}
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">History</div>
+        {% if page.items %}
+        <div class="table-responsive">
+            <table class="table-stack">
+                <thead><tr><th>Date</th><th>BP</th><th>Weight</th><th>Sugar</th><th>Notes</th><th></th></tr></thead>
+                <tbody>
+                {% for v in page.items %}
+                <tr>
+                    <td data-label="Date">{{ v.recorded_on.strftime('%d %b %Y') }}</td>
+                    <td data-label="BP">{{ ('%d/%d'|format(v.systolic, v.diastolic)) if v.systolic else '—' }}</td>
+                    <td data-label="Weight">{{ ('%.1f kg'|format(v.weight_kg)) if v.weight_kg else '—' }}</td>
+                    <td data-label="Sugar">{{ ('%.0f mg/dL'|format(v.sugar_mgdl)) if v.sugar_mgdl else '—' }}</td>
+                    <td data-label="Notes" class="cell-wrap">{{ v.notes or '—' }}{% if v.recorded_by_id != current_user.id %}<br><small class="text-muted">by {{ v.recorded_by.name }}</small>{% endif %}</td>
+                    <td class="row-actions">
+                        {% if v.recorded_by_id == current_user.id %}{{ action_btn(url_for('patient.vital_delete', vital_id=v.id), 'Remove', 'btn-danger', confirm='Remove this reading?') }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        {{ empty(icon('heart', 28), 'No readings yet', 'Add your first reading using the form.') }}
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">Add a reading</div>
+        <div class="card-body">
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {{ vitals_fields(form) }}
+                {{ form.submit(class="btn btn-primary btn-block") }}
+            </form>
+        </div>
+    </div>
+</div>
+{{ pagination(page, 'patient.vitals') }}
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/vitals-chart.js') }}"></script>{% endblock %}

@@ -1,0 +1,39 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{# Pagination for a Flask-SQLAlchemy Pagination object. Extra kwargs are kept in the links. #}
+{% macro pagination(page, endpoint) %}
+{% if page.pages > 1 %}
+<ul class="pagination" aria-label="Pagination">
+    {% if page.has_prev %}<li><a href="{{ url_for(endpoint, page=page.prev_num, **kwargs) }}" aria-label="Previous">‹</a></li>
+    {% else %}<li class="disabled"><span>‹</span></li>{% endif %}
+    {% for n in page.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+        {% if n %}
+            {% if n == page.page %}<li class="active"><span aria-current="page">{{ n }}</span></li>
+            {% else %}<li><a href="{{ url_for(endpoint, page=n, **kwargs) }}">{{ n }}</a></li>{% endif %}
+        {% else %}<li class="disabled"><span>…</span></li>{% endif %}
+    {% endfor %}
+    {% if page.has_next %}<li><a href="{{ url_for(endpoint, page=page.next_num, **kwargs) }}" aria-label="Next">›</a></li>
+    {% else %}<li class="disabled"><span>›</span></li>{% endif %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro status_badge(status) %}<span class="badge badge-{{ status }}">{{ status|replace('_', ' ') }}</span>{% endmacro %}
+
+{% macro empty(icon_html, title, text) %}
+<div class="empty-state">
+    <div class="stat-icon teal">{{ icon_html }}</div>
+    <h3>{{ title }}</h3>
+    <p>{{ text }}</p>
+</div>
+{% endmacro %}
+
+{# A one-button POST form, e.g. confirm / cancel. `fields` adds hidden inputs. #}
+{% macro action_btn(url, label, cls='btn-secondary', confirm=None, fields={}) %}
+<form method="POST" action="{{ url }}" class="inline-form"
+      {% if confirm %}data-confirm="{{ confirm }}"{% endif %}>
+    {{ csrf() }}
+    {% for k, v in fields.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <button type="submit" class="btn btn-sm {{ cls }}">{{ label }}</button>
+</form>
+{% endmacro %}

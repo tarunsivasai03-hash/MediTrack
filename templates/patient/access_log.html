@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, empty %}
+{% block title %}{{ _('Access log') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Access log') }}</h1>
+    <p class="text-muted">{{ _('Who has looked at or changed your health information. This shows other people only, not you.') }}</p></div></div>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive"><table class="table-stack">
+        <thead><tr><th>{{ _('When') }}</th><th>{{ _('Who') }}</th><th>{{ _('What') }}</th></tr></thead>
+        <tbody>
+        {% for a in page.items %}
+        <tr>
+            <td data-label="{{ _('When') }}">{{ a.created_at.strftime('%d %b %Y, %H:%M') }} UTC</td>
+            <td data-label="{{ _('Who') }}">{% if a.user %}<strong>{{ a.user.name }}</strong><br><small class="text-muted">{{ a.user.role|capitalize }}</small>{% else %}—{% endif %}</td>
+            <td data-label="{{ _('What') }}">{{ _(labels.get(a.action, a.action)) }}{% if a.detail and a.action.startswith('file.') %}<br><small class="text-muted">{{ a.detail }}</small>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}{{ empty(icon('eye', 28), _('Nothing to show'), _('No one else has accessed your information yet.')) }}{% endif %}
+</div>
+{{ pagination(page, 'patient.access_log') }}
+{% endblock %}

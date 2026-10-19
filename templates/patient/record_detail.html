@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_clinical.html" import rx_table %}
+{% block title %}Medical Record{% endblock %}
+
+{% block content %}
+<div class="page-header no-print">
+    <div><h1>Medical record</h1><p class="text-muted">{{ record.appointment.date.strftime('%A, %d %B %Y') }}</p></div>
+    <div class="btn-group">
+        <a href="{{ url_for('patient.medical_records') }}" class="btn btn-secondary">Back</a>
+        <a href="{{ url_for('files.prescription_pdf', record_id=record.id) }}" class="btn btn-secondary">{{ icon('file', 16) }} Prescription PDF</a>
+        {% if record.follow_up_date %}<a class="btn btn-primary" href="{{ url_for('patient.book_appointment_view', doctor=record.doctor_id, date=record.follow_up_date.isoformat(), reason='Follow-up: ' ~ (record.diagnosis|truncate(80))) }}">Book follow-up</a>{% endif %}
+        <button type="button" class="btn btn-secondary" data-print>Print</button>
+    </div>
+</div>
+
+<div class="card record-sheet">
+    <div class="card-body">
+        <ul class="info-list mb-2">
+            <li><span>Patient</span><span>{{ record.patient.user.name }}</span></li>
+            <li><span>Doctor</span><span>{{ record.doctor.user.name }} · {{ record.doctor.specialization }}</span></li>
+            <li><span>Visit</span><span>{{ record.appointment.date.strftime('%d %b %Y') }}, {{ record.appointment.time.strftime('%I:%M %p') }}</span></li>
+        </ul>
+        {% for label, value in [('Diagnosis', record.diagnosis), ('Treatment', record.treatment)] %}
+        {% if value %}<h3 class="mt-2">{{ label }}</h3><p class="pre-wrap">{{ value }}</p>{% endif %}
+        {% endfor %}
+        <h3 class="mt-2">Medicines</h3>{{ rx_table(record) }}
+        {% if record.notes %}<h3 class="mt-2">Notes</h3><p class="pre-wrap">{{ record.notes }}</p>{% endif %}
+        {% if record.follow_up_date %}<h3 class="mt-2">Follow-up</h3><p>{{ record.follow_up_date.strftime('%d %B %Y') }}</p>{% endif %}
+    </div>
+</div>
+{% endblock %}

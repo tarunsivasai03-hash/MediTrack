@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _('Walk-in') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Walk-in') }}</h1><p class="text-muted">{{ _("Add a same-day patient to a doctor's queue.") }}</p></div>
+    <a href="{{ url_for('reception.queue') }}" class="btn btn-secondary">{{ _('Live queue') }}</a></div>
+
+<div class="card" style="max-width:760px"><div class="card-body">
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            <label class="form-label" for="patientFilter">{{ _('Find patient') }}</label>
+            <input type="search" id="patientFilter" class="form-control" placeholder="{{ _('Type a name or phone to narrow the list') }}" autocomplete="off">
+        </div>
+        <div class="form-group {% if form.patient_id.errors %}has-error{% endif %}">
+            {{ form.patient_id.label(class="form-label") }}
+            {{ form.patient_id(class="form-control") }}
+            {% for e in form.patient_id.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+        </div>
+
+        <div id="newPatient" class="new-patient-box">
+            <h3 class="mb-1">{{ _('New patient') }}</h3>
+            <div class="form-grid">
+                {% for f in [form.new_name, form.new_age, form.new_gender, form.new_phone] %}
+                <div class="form-group {% if f.errors %}has-error{% endif %}">
+                    {{ f.label(class="form-label") }}{{ f(class="form-control") }}
+                    {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group {% if form.doctor_id.errors %}has-error{% endif %}">
+                {{ form.doctor_id.label(class="form-label") }}{{ form.doctor_id(class="form-control") }}
+                {% for e in form.doctor_id.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.reason.label(class="form-label") }}{{ form.reason(class="form-control") }}
+            </div>
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const sel = document.getElementById("patient_id"), box = document.getElementById("newPatient");
+    const filter = document.getElementById("patientFilter");
+    const options = [...sel.options];
+    const sync = () => box.classList.toggle("hidden", sel.value !== "0");
+    sel.addEventListener("change", sync); sync();
+    filter.addEventListener("input", () => {
+        const q = filter.value.trim().toLowerCase();
+        options.forEach((o) => { o.hidden = o.value !== "0" && q && !o.text.toLowerCase().includes(q); });
+        const first = options.find((o) => !o.hidden && o.value !== "0");
+        if (q && first && sel.value === "0") { sel.value = first.value; sync(); }
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% from "_icons.html" import icon %}
+<aside class="auth-brand" aria-hidden="true">
+    <div class="brand-row"><span class="logo-mark">{{ icon('logo', 20) }}</span> MediTrack</div>
+    <div>
+        <h2>{{ _('Care that stays organised.') }}</h2>
+        <p class="mt-1">{{ _('Book appointments, follow your treatment and keep your medical history in one secure place.') }}</p>
+    </div>
+    <ul class="brand-points">
+        <li><span class="pt-icon">{{ icon('calendar') }}</span> {{ _('Book a slot with your doctor in seconds') }}</li>
+        <li><span class="pt-icon">{{ icon('file') }}</span> {{ _('Prescriptions and records, always at hand') }}</li>
+        <li><span class="pt-icon">{{ icon('shield') }}</span> {{ _('Role-based access keeps your data private') }}</li>
+    </ul>
+</aside>

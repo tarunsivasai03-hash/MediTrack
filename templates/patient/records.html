@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, empty %}
+{% block title %}Medical Records{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>Medical records</h1><p class="text-muted">Your visit history, newest first</p></div></div>
+
+{% if page.items %}
+<div class="timeline">
+    {% for r in page.items %}
+    <article class="timeline-item">
+        <div class="timeline-date">{{ r.appointment.date.strftime('%d %b %Y') }} · {{ r.doctor.user.name }} ({{ r.doctor.specialization }})</div>
+        <h3>{{ r.diagnosis | truncate(90) }}</h3>
+        <p class="text-secondary">{{ r.treatment | truncate(140) }}</p>
+        {% if r.follow_up_date %}<p><span class="badge badge-confirmed">Follow-up {{ r.follow_up_date.strftime('%d %b %Y') }}</span></p>{% endif %}
+        <div class="btn-group mt-1">
+            <a class="btn btn-sm btn-secondary" href="{{ url_for('patient.medical_record_detail', record_id=r.id) }}">View details</a>
+            <a class="btn btn-sm btn-secondary" href="{{ url_for('files.prescription_pdf', record_id=r.id) }}">PDF</a>
+            {% if r.follow_up_date and r.follow_up_date >= today %}<a class="btn btn-sm btn-primary" href="{{ url_for('patient.book_appointment_view', doctor=r.doctor_id, date=r.follow_up_date.isoformat(), reason='Follow-up: ' ~ (r.diagnosis|truncate(80))) }}">Book follow-up</a>{% endif %}
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{{ pagination(page, 'patient.medical_records') }}
+{% else %}
+<div class="card">{{ empty(icon('file', 28), 'No records yet', 'After a completed visit, your doctor’s notes and prescription appear here.') }}</div>
+{% endif %}
+{% endblock %}

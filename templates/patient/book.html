@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _('Book Appointment') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Book an appointment') }}</h1>
+    <p class="text-muted">{% if acting and acting.user_id != current_user.id %}{{ _('Booking for') }} <strong>{{ acting.user.name }}</strong>. {% endif %}{{ _('Pick a doctor, a day, then an open time slot.') }}</p></div>
+    <a href="{{ url_for('patient.doctors') }}" class="btn btn-secondary">{{ icon('search', 16) }} {{ _('Browse doctors') }}</a></div>
+
+{% if not doctors %}
+<div class="card"><div class="empty-state"><div class="stat-icon amber">{{ icon('alert', 28) }}</div>
+<h3>{{ _('No doctors available') }}</h3><p>{{ _('Please check back later.') }}</p></div></div>
+{% else %}
+<div class="card" style="max-width:760px">
+    <div class="card-body">
+        <form method="POST" id="bookForm" novalidate>
+            {{ form.hidden_tag() }}
+
+            {% if departments %}
+            <div class="form-group">
+                <label class="form-label" for="deptFilter">{{ _('Department') }}</label>
+                <select id="deptFilter" class="form-control">
+                    <option value="0">{{ _('All departments') }}</option>
+                    {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-group {% if form.doctor_id.errors %}has-error{% endif %}">
+                    {{ form.doctor_id.label(class="form-label") }}
+                    {{ form.doctor_id(class="form-control") }}
+                    {% for e in form.doctor_id.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                    <small class="text-muted" id="doctorMeta"></small>
+                </div>
+                <div class="form-group {% if form.date.errors %}has-error{% endif %}">
+                    {{ form.date.label(class="form-label") }}
+                    {{ form.date(class="form-control", type="date", min=today) }}
+                    {% for e in form.date.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                </div>
+            </div>
+
+            <div class="form-group {% if form.time.errors %}has-error{% endif %}">
+                <span class="form-label">{{ _('Time slot') }}</span>
+                {{ form.time() }}
+                <div id="slotStatus" class="text-muted" aria-live="polite">{{ _('Choose a doctor and date to see slots.') }}</div>
+                <div class="slot-grid" id="slotGrid" role="listbox" aria-label="{{ _('Available time slots') }}"></div>
+                {% for e in form.time.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+
+            <div class="form-group {% if form.reason.errors %}has-error{% endif %}">
+                {{ form.reason.label(class="form-label") }}
+                {{ form.reason(class="form-control", maxlength=500) }}
+                {% for e in form.reason.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+
+            {{ form.submit(class="btn btn-primary") }}
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>window.DOCTOR_INFO = {{ doctor_info | tojson }};</script>
+<script src="{{ url_for('static', filename='js/slots.js') }}"></script>
+<script>
+(() => {
+    /* Department filter: hide doctors outside the chosen department. */
+    const dept = document.getElementById("deptFilter"), doc = document.getElementById("doctor_id");
+    if (!dept || !doc) return;
+    const all = [...doc.options];
+    dept.addEventListener("change", () => {
+        const want = dept.value;
+        all.forEach((o) => { o.hidden = want !== "0" && String(window.DOCTOR_INFO[o.value]?.dept) !== want; o.disabled = o.hidden; });
+        if (doc.selectedOptions[0]?.hidden) {
+            const first = all.find((o) => !o.hidden);
+            if (first) { doc.value = first.value; doc.dispatchEvent(new Event("change")); }
+        }
+    });
+})();
+</script>
+{% endblock %}

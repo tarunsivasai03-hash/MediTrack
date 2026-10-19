@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "_queue_board.html" import queue_board %}
+{% block title %}{{ _('Waiting room') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ _('Waiting room') }}</h1><p class="text-muted">{{ _('Patients who have checked in appear here in arrival order.') }}</p></div>
+</div>
+{{ queue_board() }}
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/queue.js') }}"></script>{% endblock %}

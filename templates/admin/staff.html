@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import action_btn, empty %}
+{% block title %}{{ _('Reception staff') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Reception staff') }}</h1>
+    <p class="text-muted">{{ _('Front-desk accounts can book, check in and take payments. They cannot see medical records or manage doctors.') }}</p></div></div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        {% if members %}
+        <div class="table-responsive"><table class="table-stack">
+            <thead><tr><th>{{ _('Name') }}</th><th>{{ _('Status') }}</th><th></th></tr></thead>
+            <tbody>
+            {% for m in members %}
+            <tr>
+                <td data-label="{{ _('Name') }}"><strong>{{ m.name }}</strong><br><small class="text-muted">{{ m.email }}</small></td>
+                <td data-label="{{ _('Status') }}"><span class="badge badge-{{ 'active' if m.is_active else 'inactive' }}">{{ 'active' if m.is_active else 'inactive' }}</span></td>
+                <td class="row-actions">{{ action_btn(url_for('admin.staff_toggle', user_id=m.id), _('Deactivate') if m.is_active else _('Activate'), 'btn-danger' if m.is_active else 'btn-success') }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+        {% else %}{{ empty(icon('user-plus', 28), _('No reception staff yet'), _('Add the first account using the form.')) }}{% endif %}
+    </div>
+    <div class="card">
+        <div class="card-header">{{ _('Add staff member') }}</div>
+        <div class="card-body">
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {% for f in [form.name, form.email, form.password] %}
+                <div class="form-group {% if f.errors %}has-error{% endif %}">
+                    {{ f.label(class="form-label") }}{{ f(class="form-control", autocomplete="new-password" if f.name == 'password' else "off") }}
+                    {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                </div>
+                {% endfor %}
+                {{ form.submit(class="btn btn-primary btn-block") }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

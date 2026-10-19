@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, action_btn, empty, status_badge %}
+{% block title %}Appointments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>Appointments</h1><p class="text-muted">{{ page.total }} match{{ '' if page.total == 1 else 'es' }}</p></div>
+    <a class="btn btn-secondary" href="{{ url_for('admin.appointments_csv', **active_filters) }}">{{ icon('file', 18) }} Export CSV</a>
+    <a class="btn btn-secondary" href="{{ url_for('admin.appointments_xlsx', **active_filters) }}">{{ icon('download', 18) }} Excel</a>
+</div>
+
+<form method="GET" class="filter-bar">
+    <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-control">
+            <option value="">All</option>
+            {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s|replace('_', ' ')|capitalize }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="doctor">Doctor</label>
+        <select id="doctor" name="doctor" class="form-control">
+            <option value="">All</option>
+            {% for d in doctors %}<option value="{{ d.id }}" {{ 'selected' if filters.doctor == d.id|string }}>{{ d.user.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="date">Date</label>
+        <input id="date" type="date" name="date" value="{{ filters.date }}" class="form-control">
+    </div>
+    <button class="btn btn-primary" type="submit">Filter</button>
+    {% if active_filters %}<a class="btn btn-secondary" href="{{ url_for('admin.appointments') }}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>When</th><th>Patient</th><th>Doctor</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for a in page.items %}
+            <tr>
+                <td data-label="When">{{ a.date.strftime('%d %b %Y') }}<br><small class="text-muted">{{ a.time.strftime('%I:%M %p') }}</small></td>
+                <td data-label="Patient">{{ a.patient.user.name }}</td>
+                <td data-label="Doctor">{{ a.doctor.user.name }}<br><small class="text-muted">{{ a.doctor.specialization }}</small></td>
+                <td data-label="Reason" class="cell-wrap">{{ a.reason or '—' }}</td>
+                <td data-label="Status">{{ status_badge(a.status) }}</td>
+                <td class="row-actions">
+                    {% if a.status == 'pending' %}{{ action_btn(url_for('admin.appointment_status', appt_id=a.id), 'Confirm', 'btn-success', fields={'status': 'confirmed'}) }}{% endif %}
+                    {% if a.status in ('pending', 'confirmed') %}{{ action_btn(url_for('admin.appointment_status', appt_id=a.id), 'Cancel', 'btn-danger', confirm='Cancel this appointment?', fields={'status': 'cancelled'}) }}{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('calendar', 28), 'No appointments found', 'Adjust the filters to see more.') }}
+    {% endif %}
+</div>
+{{ pagination(page, 'admin.appointments', **active_filters) }}
+{% endblock %}

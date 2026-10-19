@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import action_btn, empty %}
+{% block title %}{{ _('Departments') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Departments') }}</h1><p class="text-muted">{{ _('Group doctors so patients can browse by specialty.') }}</p></div></div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        {% if departments %}
+        <div class="table-responsive"><table class="table-stack">
+            <thead><tr><th>{{ _('Department') }}</th><th>{{ _('Doctors') }}</th><th></th></tr></thead>
+            <tbody>
+            {% for d in departments %}
+            <tr>
+                <td data-label="{{ _('Department') }}"><strong>{{ d.name }}</strong>{% if d.description %}<br><small class="text-muted">{{ d.description }}</small>{% endif %}</td>
+                <td data-label="{{ _('Doctors') }}">{{ d.doctors.count() }}</td>
+                <td class="row-actions">{{ action_btn(url_for('admin.department_delete', dept_id=d.id), _('Delete'), 'btn-danger', confirm=_('Delete this department?')) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+        {% else %}{{ empty(icon('building', 28), _('No departments yet'), _('Add one using the form.')) }}{% endif %}
+    </div>
+    <div class="card">
+        <div class="card-header">{{ _('Add department') }}</div>
+        <div class="card-body">
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {% for f in [form.name, form.description] %}
+                <div class="form-group {% if f.errors %}has-error{% endif %}">
+                    {{ f.label(class="form-label") }}{{ f(class="form-control") }}
+                    {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                </div>
+                {% endfor %}
+                {{ form.submit(class="btn btn-primary btn-block") }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,2 @@
+{# Star display: stars(4.5) -> ★★★★☆ (rounded to the nearest whole star) #}
+{% macro stars(value) %}{% set n = (value or 0)|round|int %}<span class="stars" aria-label="{{ '%.1f'|format(value or 0) }} / 5">{% for i in range(5) %}<span class="{{ '' if i < n else 'off' }}">★</span>{% endfor %}</span>{% endmacro %}

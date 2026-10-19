@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, action_btn, empty %}
+{% block title %}Doctors{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>Doctors</h1><p class="text-muted">{{ page.total }} on staff</p></div>
+    <a href="{{ url_for('admin.doctor_new') }}" class="btn btn-primary">{{ icon('calendar-plus', 18) }} Add doctor</a>
+</div>
+
+<form method="GET" class="filter-bar" role="search">
+    <div class="form-group" style="flex:1">
+        <label class="form-label" for="q">Search</label>
+        <input id="q" name="q" value="{{ q }}" class="form-control" placeholder="Name, email or specialization">
+    </div>
+    <button class="btn btn-primary" type="submit">Search</button>
+    {% if q %}<a class="btn btn-secondary" href="{{ url_for('admin.doctors') }}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>Doctor</th><th>Specialization</th><th>Schedule</th><th>Fee</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for d in page.items %}
+            <tr>
+                <td data-label="Doctor"><strong>{{ d.user.name }}</strong><br><small class="text-muted">{{ d.user.email }}</small></td>
+                <td data-label="Specialization">{{ d.specialization }}<br><small class="text-muted">{{ d.experience_years }} yrs</small></td>
+                <td data-label="Schedule">{{ d.work_start.strftime('%H:%M') }}–{{ d.work_end.strftime('%H:%M') }}<br><small class="text-muted">{{ d.available_days.replace(',', ', ') }}</small></td>
+                <td data-label="Fee">₹{{ '%.0f'|format(d.consultation_fee or 0) }}</td>
+                <td data-label="Status"><span class="badge badge-{{ 'active' if d.user.is_active else 'inactive' }}">{{ 'active' if d.user.is_active else 'inactive' }}</span></td>
+                <td class="row-actions">
+                    <a href="{{ url_for('admin.doctor_edit', doctor_id=d.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                    {{ action_btn(url_for('admin.doctor_toggle', doctor_id=d.id),
+                                  'Deactivate' if d.user.is_active else 'Activate',
+                                  'btn-danger' if d.user.is_active else 'btn-success',
+                                  confirm='Deactivate ' ~ d.user.name ~ '? They will no longer be bookable.' if d.user.is_active else None) }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('doctor', 28), 'No doctors found', 'Try a different search or add a new doctor.') }}
+    {% endif %}
+</div>
+{{ pagination(page, 'admin.doctors', q=q) }}
+{% endblock %}

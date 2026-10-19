@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}{{ _('Dashboard') }}{% endblock %}
+
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ _('Admin Dashboard') }}</h1><p class="text-muted">{{ _('System overview and management') }}</p></div>
+    {% if nav_url('admin.doctor_new') %}<a href="{{ url_for('admin.doctor_new') }}" class="btn btn-primary">{{ icon('calendar-plus', 18) }} {{ _('Add doctor') }}</a>{% endif %}
+</div>
+
+{% if not current_user.totp_enabled %}
+<div class="alert-box alert-warning">{{ _('Admin accounts should use two-factor login.') }} <a href="{{ url_for('auth.security_settings') }}">{{ _('Set it up') }}</a></div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon teal">{{ icon('doctor', 24) }}</div>
+        <div class="stat-details"><h3>{{ stats.doctors }}</h3><p>{{ _('Doctors') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue">{{ icon('users', 24) }}</div>
+        <div class="stat-details"><h3>{{ stats.patients }}</h3><p>{{ _('Patients') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon indigo">{{ icon('calendar', 24) }}</div>
+        <div class="stat-details"><h3>{{ stats.appointments }}</h3><p>{{ _('Total appointments') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon green">{{ icon('clock', 24) }}</div>
+        <div class="stat-details"><h3>{{ stats.today }}</h3><p>{{ _('Today') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon amber">{{ icon('alert', 24) }}</div>
+        <div class="stat-details"><h3>{{ stats.pending }}</h3><p>{{ _('Pending') }}</p></div></div>
+</div>
+
+<div class="dashboard-grid mb-2">
+    <div class="card"><div class="card-header">{{ _('Appointments — next 7 days') }}</div>
+        <div class="chart-container"><canvas id="dailyChart" aria-label="Bookings per day" role="img"></canvas></div></div>
+    <div class="card"><div class="card-header">{{ _('By status') }}</div>
+        <div class="chart-container"><canvas id="statusChart" aria-label="Appointments by status" role="img"></canvas></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header">{{ _('Recent appointments') }}</div>
+    {% if recent %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>{{ _('Date') }}</th><th>{{ _('Time') }}</th><th>{{ _('Patient') }}</th><th>{{ _('Doctor') }}</th><th>{{ _('Status') }}</th></tr></thead>
+            <tbody>
+            {% for a in recent %}
+            <tr>
+                <td data-label="{{ _('Date') }}">{{ a.date.strftime('%d %b %Y') }}</td>
+                <td data-label="{{ _('Time') }}">{{ a.time.strftime('%I:%M %p') }}</td>
+                <td data-label="{{ _('Patient') }}">{{ a.patient.user.name }}</td>
+                <td data-label="{{ _('Doctor') }}">{{ a.doctor.user.name }}</td>
+                <td data-label="{{ _('Status') }}">{{ status_badge(a.status) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('calendar', 28), _('No appointments yet'), _('Bookings made by patients will appear here.')) }}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.addEventListener("load", async () => {
+    if (!window.Chart) return;
+    try {
+        const r = await fetch("{{ url_for('api.stats') }}");
+        if (!r.ok) return;
+        const d = await r.json();
+        const css = getComputedStyle(document.documentElement);
+        const teal = css.getPropertyValue("--color-primary").trim();
+        new Chart(document.getElementById("dailyChart"), {
+            type: "bar",
+            data: { labels: d.daily.labels, datasets: [{ data: d.daily.values, backgroundColor: teal, borderRadius: 6 }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } },
+                       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+        });
+        const colours = { pending: "#f59e0b", confirmed: "#0284c7", completed: "#16a34a", cancelled: "#9f1239", no_show: "#ff6b81" };
+        const keys = Object.keys(d.status);
+        new Chart(document.getElementById("statusChart"), {
+            type: "doughnut",
+            // JSON keys arrive alphabetically sorted, so colour by name rather than position.
+            data: { labels: keys.map(s => s.replace("_", " ").replace(/^./, c => c.toUpperCase())),
+                    datasets: [{ data: keys.map(k => d.status[k]), backgroundColor: keys.map(k => colours[k]) }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } },
+        });
+    } catch (e) { /* charts are optional */ }
+});
+</script>
+{% endblock %}

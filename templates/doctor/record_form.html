@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Medical Record{% endblock %}
+
+{% macro field(f) %}
+<div class="form-group {% if f.errors %}has-error{% endif %}">
+    {{ f.label(class="form-label") }}
+    {{ f(class="form-control") }}
+    {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ 'Edit record' if editing else 'Complete visit' }}</h1>
+        <p class="text-muted">{{ appt.patient.user.name }} · {{ appt.date.strftime('%d %b %Y') }}, {{ appt.time.strftime('%I:%M %p') }}</p>
+    </div>
+    <a href="{{ url_for('doctor.appointments') }}" class="btn btn-secondary">Back</a>
+</div>
+
+{% if appt.reason %}<div class="card mb-2"><div class="card-body"><strong>Reason for visit:</strong> <span class="pre-wrap">{{ appt.reason }}</span></div></div>{% endif %}
+
+<div class="card" style="max-width:760px"><div class="card-body">
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ field(form.diagnosis) }}
+        {{ field(form.treatment) }}
+        <div class="form-group">
+            <span class="form-label">Medicines</span>
+            <div id="rxRows" class="rx-rows">
+                {% for entry in form.rx %}
+                <div class="rx-row" data-index="{{ loop.index0 }}">
+                    {% for f in entry.form %}
+                    <div class="rx-cell rx-{{ f.short_name }} {% if f.errors %}has-error{% endif %}">
+                        {{ f(class="form-control", placeholder=f.label.text, **{"aria-label": f.label.text}) }}
+                        {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button type="button" class="icon-btn rx-remove" aria-label="Remove medicine" title="Remove">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm mt-1" id="rxAdd">+ Add medicine</button>
+            <small class="text-muted" style="display:block">Example: Amoxicillin · 500 mg · twice a day after meals · 5 days</small>
+        </div>
+        {{ field(form.prescription) }}
+        {{ field(form.notes) }}
+        {{ field(form.follow_up_date) }}
+        {{ form.submit(class="btn btn-primary", value='Save record' if editing else 'Save & complete visit') }}
+    </form>
+</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const rows = document.getElementById("rxRows");
+    const MAX = {{ form.MAX_ITEMS }};
+    const renumber = () => rows.querySelectorAll(".rx-row").forEach((row, i) => {
+        row.dataset.index = i;
+        row.querySelectorAll("input").forEach((inp) => {
+            const field = inp.name.replace(/^rx-\d+-/, "");
+            inp.name = inp.id = `rx-${i}-${field}`;
+        });
+    });
+    document.getElementById("rxAdd").addEventListener("click", () => {
+        const all = rows.querySelectorAll(".rx-row");
+        if (all.length >= MAX) return;
+        const copy = all[all.length - 1].cloneNode(true);
+        copy.querySelectorAll("input").forEach((i) => { i.value = ""; });
+        copy.querySelectorAll(".form-error").forEach((e) => e.remove());
+        copy.querySelectorAll(".has-error").forEach((e) => e.classList.remove("has-error"));
+        rows.appendChild(copy);
+        renumber();
+        copy.querySelector("input").focus();
+    });
+    rows.addEventListener("click", (e) => {
+        if (!e.target.closest(".rx-remove")) return;
+        const all = rows.querySelectorAll(".rx-row");
+        const row = e.target.closest(".rx-row");
+        if (all.length === 1) { row.querySelectorAll("input").forEach((i) => { i.value = ""; }); return; }
+        row.remove();
+        renumber();
+    });
+})();
+</script>
+{% endblock %}

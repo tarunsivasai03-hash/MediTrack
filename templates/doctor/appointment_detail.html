@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import status_badge, action_btn %}
+{% from "_clinical.html" import attachments_panel, clinical_alert, rx_table, vitals_fields, vitals_chart %}
+{% block title %}Visit — {{ patient.user.name }}{% endblock %}
+
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ patient.user.name }}</h1>
+        <p class="text-muted">{{ appt.date.strftime('%A, %d %B %Y') }} · {{ appt.time.strftime('%I:%M %p') }} · {{ status_badge(appt.status) }}</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('doctor.appointments') }}" class="btn btn-secondary">Back</a>
+        {% if appt.status == 'pending' %}{{ action_btn(url_for('doctor.appointment_status', appt_id=appt.id), 'Confirm', 'btn-success', fields={'status': 'confirmed'}) }}{% endif %}
+        {% if appt.status == 'confirmed' %}<a class="btn btn-primary" href="{{ url_for('doctor.record', appt_id=appt.id) }}">Complete visit</a>{% endif %}
+        {% if appt.status == 'completed' %}<a class="btn btn-secondary" href="{{ url_for('doctor.record', appt_id=appt.id) }}">Edit record</a>{% endif %}
+    </div>
+</div>
+
+{{ clinical_alert(patient) }}
+
+<div class="dashboard-grid">
+    <div>
+        <div class="card mb-2">
+            <div class="card-header">Patient</div>
+            <div class="card-body">
+                <ul class="info-list">
+                    <li><span>Age / Gender</span><span>{{ patient.age if patient.age is not none else '—' }} · {{ patient.gender or '—' }}</span></li>
+                    <li><span>Blood group</span><span>{{ patient.blood_group or '—' }}</span></li>
+                    <li><span>Phone</span><span>{{ patient.phone or '—' }}</span></li>
+                    <li><span>Reason for visit</span><span class="pre-wrap">{{ appt.reason or '—' }}</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-2">
+            <div class="card-header">Vitals trend</div>
+            {{ vitals_chart(url_for('api.patient_vitals', patient_id=patient.id)) }}
+            {% if recent_vitals %}
+            <div class="table-responsive">
+                <table class="table-stack">
+                    <thead><tr><th>Date</th><th>BP</th><th>Weight</th><th>Sugar</th><th>By</th></tr></thead>
+                    <tbody>
+                    {% for v in recent_vitals %}
+                    <tr>
+                        <td data-label="Date">{{ v.recorded_on.strftime('%d %b %Y') }}</td>
+                        <td data-label="BP">{{ ('%d/%d'|format(v.systolic, v.diastolic)) if v.systolic else '—' }}</td>
+                        <td data-label="Weight">{{ ('%.1f kg'|format(v.weight_kg)) if v.weight_kg else '—' }}</td>
+                        <td data-label="Sugar">{{ ('%.0f mg/dL'|format(v.sugar_mgdl)) if v.sugar_mgdl else '—' }}</td>
+                        <td data-label="By">{{ v.recorded_by.name }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <details class="card mb-2">
+            <summary class="card-header summary-btn">Record vitals for this visit</summary>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('doctor.add_vitals', appt_id=appt.id) }}" novalidate>
+                    {{ vitals_form.hidden_tag() }}
+                    {{ vitals_fields(vitals_form) }}
+                    {{ vitals_form.submit(class="btn btn-primary btn-sm") }}
+                </form>
+            </div>
+        </details>
+
+        {% if appt.medical_record %}
+        <div class="card mb-2">
+            <div class="card-header">This visit's record
+                <a class="btn btn-sm btn-secondary" href="{{ url_for('files.prescription_pdf', record_id=appt.medical_record.id) }}">{{ icon('file', 16) }} Prescription PDF</a>
+            </div>
+            <div class="card-body">
+                <h3>Diagnosis</h3><p class="pre-wrap">{{ appt.medical_record.diagnosis }}</p>
+                <h3 class="mt-2">Medicines</h3>{{ rx_table(appt.medical_record) }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if history %}
+        <div class="card">
+            <div class="card-header">Earlier visits with you</div>
+            <div class="card-body">
+                <ul class="info-list">
+                    {% for r in history %}
+                    <li><span>{{ r.appointment.date.strftime('%d %b %Y') }}</span><span>{{ r.diagnosis|truncate(60) }}</span></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div>{{ attachments_panel(appt, upload_form, current_user.id) }}</div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/vitals-chart.js') }}"></script>{% endblock %}

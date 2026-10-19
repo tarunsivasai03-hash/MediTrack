@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import status_badge, empty %}
+{% from "_clinical.html" import clinical_alert, rx_table, vitals_chart %}
+{% block title %}{{ patient.user.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ patient.user.name }}</h1><p class="text-muted">Patient history with you</p></div>
+    <a href="{{ url_for('doctor.patients') }}" class="btn btn-secondary">Back</a>
+</div>
+
+{{ clinical_alert(patient) }}
+
+<div class="dashboard-grid">
+    <div>
+        <h2 class="mb-1">Medical records</h2>
+        {% if records %}
+        <div class="timeline">
+            {% for r in records %}
+            <article class="timeline-item">
+                <div class="timeline-date">{{ r.appointment.date.strftime('%d %b %Y') }}</div>
+                <h3>Diagnosis</h3><p class="pre-wrap">{{ r.diagnosis }}</p>
+                <h3 class="mt-1">Treatment</h3><p class="pre-wrap">{{ r.treatment }}</p>
+                <h3 class="mt-1">Medicines</h3>{{ rx_table(r) }}
+                {% if r.follow_up_date %}<p class="mt-1"><span class="badge badge-confirmed">Follow-up {{ r.follow_up_date.strftime('%d %b %Y') }}</span></p>{% endif %}
+                <div class="btn-group mt-1"><a class="btn btn-sm btn-secondary" href="{{ url_for('doctor.record', appt_id=r.appointment_id) }}">Edit</a><a class="btn btn-sm btn-secondary" href="{{ url_for('files.prescription_pdf', record_id=r.id) }}">PDF</a></div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card">{{ empty(icon('file', 28), 'No records yet', 'Complete a visit to add one.') }}</div>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="card mb-2"><div class="card-header">Details</div><div class="card-body">
+            <ul class="info-list">
+                <li><span>Age</span><span>{{ patient.age if patient.age is not none else '—' }}</span></li>
+                <li><span>Gender</span><span>{{ patient.gender or '—' }}</span></li>
+                <li><span>Blood group</span><span>{{ patient.blood_group or '—' }}</span></li>
+                <li><span>Phone</span><span>{{ patient.phone or '—' }}</span></li>
+            </ul>
+        </div></div>
+        <div class="card mb-2"><div class="card-header">Vitals trend</div>{{ vitals_chart(url_for('api.patient_vitals', patient_id=patient.id)) }}</div>
+        <div class="card"><div class="card-header">Recent appointments</div><div class="card-body">
+            <ul class="info-list">
+                {% for a in appts %}<li><span>{{ a.date.strftime('%d %b %Y') }}</span><span>{{ status_badge(a.status) }}</span></li>{% endfor %}
+            </ul>
+        </div></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/vitals-chart.js') }}"></script>{% endblock %}

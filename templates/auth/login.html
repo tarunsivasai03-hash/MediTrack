@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ _('Log In') }}{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    {% include "auth/_brand.html" %}
+
+    <div class="auth-panel">
+        <div class="auth-card">
+            <div class="auth-header">
+                <span class="auth-logo logo-mark">{{ icon('logo', 26) }}</span>
+                <h1>{{ _('Welcome back') }}</h1>
+                <p class="auth-subtitle">{{ _('Sign in to your account') }}</p>
+            </div>
+
+            <form method="POST" class="auth-form" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="form-group {% if form.email.errors %}has-error{% endif %}">
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-control", type="email", inputmode="email", autofocus=true) }}
+                    {% for error in form.email.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </div>
+
+                <div class="form-group {% if form.password.errors %}has-error{% endif %}">
+                    {{ form.password.label(class="form-label") }}
+                    <div class="input-wrap">
+                        {{ form.password(class="form-control", autocomplete="current-password") }}
+                        <button type="button" class="input-toggle" data-toggle-password="password" aria-label="{{ _('Show password') }}" aria-pressed="false">{{ icon('eye') }}</button>
+                    </div>
+                    {% for error in form.password.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </div>
+
+                <div class="form-group form-row">
+                    <span class="form-check">
+                        {{ form.remember(class="form-check-input") }}
+                        {{ form.remember.label(class="form-check-label") }}
+                    </span>
+                    <a href="{{ url_for('auth.forgot_password') }}">{{ _('Forgot password?') }}</a>
+                </div>
+
+                {{ form.submit(class="btn btn-primary btn-block") }}
+            </form>
+
+            <div class="auth-footer">
+                <p>{{ _("Don't have an account?") }} <a href="{{ url_for('auth.register') }}">{{ _('Register as Patient') }}</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_stars.html" import stars %}
+{% block title %}{{ _('Dashboard') }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>{{ current_user.name }}</h1>
+    <p>{% if profile %}{{ profile.department.name if profile.department else profile.specialization }} · {{ profile.qualification }}{% else %}{{ _('Your appointments and patients') }}{% endif %}</p>
+    {% if rating %}<p style="position:relative">{{ stars(rating[0]) }} <small>{{ rating[0] }} · {{ rating[1] }} {{ _('reviews') }}</small></p>{% endif %}
+    <a href="{{ url_for('doctor.queue') }}" class="btn btn-light">{{ icon('list', 18) }} {{ _('Waiting room') }}</a>
+</section>
+
+{% if not current_user.totp_enabled %}
+<div class="alert-box alert-warning">{{ _('Protect patient data: turn on two-factor login.') }} <a href="{{ url_for('auth.security_settings') }}">{{ _('Set it up') }}</a></div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon teal">{{ icon('calendar', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.today }}</h3><p>{{ _('Today') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon amber">{{ icon('clock', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.pending }}</h3><p>{{ _('Pending approval') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon green">{{ icon('check-circle', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.completed }}</h3><p>{{ _('Completed') }}</p></div></div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">{{ _("Today's schedule") }}</div>
+        {% if today_appts %}
+        <div class="table-responsive">
+            <table class="table-stack">
+                <thead><tr><th>{{ _('Time') }}</th><th>{{ _('Patient') }}</th><th>{{ _('Reason') }}</th><th>{{ _('Status') }}</th></tr></thead>
+                <tbody>
+                {% for a in today_appts %}
+                <tr>
+                    <td data-label="{{ _('Time') }}">{{ a.time.strftime('%I:%M %p') }}</td>
+                    <td data-label="{{ _('Patient') }}"><a href="{{ url_for('doctor.appointment_detail', appt_id=a.id) }}">{{ a.patient.user.name }}</a>{% if a.is_walk_in %} <span class="walk-tag">WALK-IN</span>{% endif %}</td>
+                    <td data-label="{{ _('Reason') }}">{{ a.reason or '—' }}</td>
+                    <td data-label="{{ _('Status') }}"><span class="badge badge-{{ a.status }}">{{ a.status|replace('_', ' ') }}</span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="stat-icon teal">{{ icon('calendar', 28) }}</div>
+            <h3>{{ _('Nothing scheduled today') }}</h3>
+            <p>{{ _('Enjoy the quiet — new bookings will appear here.') }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="card mb-2">
+            <div class="card-header">{{ _('My schedule') }}</div>
+            <div class="card-body">
+                {% if profile %}
+                <ul class="info-list">
+                    <li><span>{{ _('Hours') }}</span><span>{{ profile.work_start.strftime('%I:%M %p') }} – {{ profile.work_end.strftime('%I:%M %p') }}</span></li>
+                    <li><span>{{ _('Slot length') }}</span><span>{{ profile.slot_minutes }} min</span></li>
+                    <li><span>{{ _('Days') }}</span><span>{{ profile.available_days.replace(',', ', ') }}</span></li>
+                    <li><span>{{ _('Fee') }}</span><span>₹{{ '%.0f'|format(profile.consultation_fee or 0) }}</span></li>
+                </ul>
+                {% else %}<p class="text-muted">{{ _('No doctor profile on file.') }}</p>{% endif %}
+            </div>
+        </div>
+        {% if reviews %}
+        <div class="card">
+            <div class="card-header">{{ _('Latest reviews') }}</div>
+            <div class="card-body">
+                {% for r in reviews %}
+                <div class="review">{{ stars(r.stars) }} <small class="text-muted">{{ r.created_at.strftime('%d %b') }}</small>
+                    {% if r.comment %}<p class="pre-wrap">{{ r.comment }}</p>{% endif %}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

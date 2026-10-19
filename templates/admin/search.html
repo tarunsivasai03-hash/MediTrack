@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>Search</h1><p class="text-muted">Find doctors, patients and appointments</p></div></div>
+
+<form method="GET" class="filter-bar" role="search">
+    <div class="form-group" style="flex:1">
+        <label class="form-label" for="q">Query</label>
+        <input id="q" name="q" value="{{ q }}" class="form-control" maxlength="100" placeholder="Name, email, phone, specialization, reason…" autofocus>
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="category">In</label>
+        <select id="category" name="category" class="form-control">
+            {% for v, label in [('all','All'),('doctors','Doctors'),('patients','Patients'),('appointments','Appointments')] %}
+            <option value="{{ v }}" {{ 'selected' if category == v }}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ icon('search', 18) }} Search</button>
+</form>
+
+{% if q and total == 0 %}
+<div class="card">{{ empty(icon('search', 28), 'No results', 'Nothing matched “' ~ q ~ '”.') }}</div>
+{% endif %}
+
+{% if results.doctors %}
+<div class="card mb-2"><div class="card-header">Doctors ({{ results.doctors|length }})</div>
+<div class="table-responsive"><table class="table-stack"><tbody>
+{% for d in results.doctors %}<tr>
+    <td data-label="Name"><strong>{{ d.user.name }}</strong></td>
+    <td data-label="Specialization">{{ d.specialization }}</td>
+    <td data-label="Email">{{ d.user.email }}</td>
+    <td class="row-actions"><a class="btn btn-sm btn-secondary" href="{{ url_for('admin.doctor_edit', doctor_id=d.id) }}">Edit</a></td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+
+{% if results.patients %}
+<div class="card mb-2"><div class="card-header">Patients ({{ results.patients|length }})</div>
+<div class="table-responsive"><table class="table-stack"><tbody>
+{% for p in results.patients %}<tr>
+    <td data-label="Name"><strong>{{ p.user.name }}</strong></td>
+    <td data-label="Email">{{ p.user.email }}</td>
+    <td data-label="Phone">{{ p.phone or '—' }}</td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+
+{% if results.appointments %}
+<div class="card mb-2"><div class="card-header">Appointments ({{ results.appointments|length }})</div>
+<div class="table-responsive"><table class="table-stack"><tbody>
+{% for a in results.appointments %}<tr>
+    <td data-label="When">{{ a.date.strftime('%d %b %Y') }} {{ a.time.strftime('%I:%M %p') }}</td>
+    <td data-label="Patient">{{ a.patient.user.name }}</td>
+    <td data-label="Doctor">{{ a.doctor.user.name }}</td>
+    <td data-label="Status">{{ status_badge(a.status) }}</td>
+</tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+{% endblock %}

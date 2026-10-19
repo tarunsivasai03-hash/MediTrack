@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, empty %}
+{% block title %}{{ _('Audit log') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ _('Audit log') }}</h1><p class="text-muted">{{ _('Who accessed or changed sensitive data, and when. Entries cannot be edited.') }}</p></div>
+    <a class="btn btn-secondary" href="{{ url_for('admin.audit_csv', **active_filters) }}">{{ icon('download', 16) }} CSV</a>
+</div>
+
+<form method="GET" class="filter-bar">
+    <div class="form-group"><label class="form-label" for="action">{{ _('Action') }}</label>
+        <select id="action" name="action" class="form-control">
+            <option value="">{{ _('All') }}</option>
+            {% for a, label in [('auth.', 'Sign-in & security'), ('patient.', 'Patient data viewed'), ('record.', 'Medical records'), ('file.', 'Files'), ('vitals.', 'Vitals'), ('invoice.', 'Billing'), ('admin.', 'Admin changes'), ('profile.', 'Profile changes'), ('family.', 'Family members'), ('appointment.', 'Walk-ins')] %}
+            <option value="{{ a }}" {{ 'selected' if filters.action == a }}>{{ _(label) }}</option>{% endfor %}
+        </select></div>
+    <div class="form-group"><label class="form-label" for="user">{{ _('User') }}</label><input id="user" name="user" value="{{ filters.user }}" class="form-control" placeholder="{{ _('Name or email') }}"></div>
+    <div class="form-group"><label class="form-label" for="patient">{{ _('Patient') }}</label><input id="patient" name="patient" value="{{ filters.patient }}" class="form-control"></div>
+    <div class="form-group"><label class="form-label" for="from">{{ _('From') }}</label><input id="from" type="date" name="from" value="{{ filters['from'] }}" class="form-control"></div>
+    <div class="form-group"><label class="form-label" for="to">{{ _('To') }}</label><input id="to" type="date" name="to" value="{{ filters['to'] }}" class="form-control"></div>
+    <button class="btn btn-primary" type="submit">{{ _('Filter') }}</button>
+    {% if active_filters %}<a class="btn btn-secondary" href="{{ url_for('admin.audit_log') }}">{{ _('Clear') }}</a>{% endif %}
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>{{ _('Time (UTC)') }}</th><th>{{ _('User') }}</th><th>{{ _('Action') }}</th><th>{{ _('Patient') }}</th><th>{{ _('Detail') }}</th><th>IP</th></tr></thead>
+            <tbody>
+            {% for a in page.items %}
+            <tr>
+                <td data-label="{{ _('Time (UTC)') }}">{{ a.created_at.strftime('%d %b %Y %H:%M:%S') }}</td>
+                <td data-label="{{ _('User') }}">{% if a.user %}{{ a.user.name }}<br><small class="text-muted">{{ a.user.role }}</small>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td data-label="{{ _('Action') }}"><code>{{ a.action }}</code></td>
+                <td data-label="{{ _('Patient') }}">{{ a.patient.user.name if a.patient else '—' }}</td>
+                <td data-label="{{ _('Detail') }}" class="cell-wrap">{{ a.detail or '—' }}</td>
+                <td data-label="IP">{{ a.ip or '—' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}{{ empty(icon('list', 28), _('No matching entries'), _('Adjust the filters to see more.')) }}{% endif %}
+</div>
+{{ pagination(page, 'admin.audit_log', **active_filters) }}
+{% endblock %}

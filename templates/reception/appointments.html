@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, action_btn, empty, status_badge %}
+{% block title %}{{ _('Appointments') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ _('Appointments') }}</h1><p class="text-muted">{{ page.total }}</p></div>
+    <a href="{{ url_for('reception.book') }}" class="btn btn-primary">{{ icon('calendar-plus', 18) }} {{ _('Book appointment') }}</a>
+</div>
+
+<form method="GET" class="filter-bar">
+    <div class="form-group">
+        <label class="form-label" for="date">{{ _('Date') }}</label>
+        <input id="date" type="date" name="date" value="{{ filters.date }}" class="form-control">
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="status">{{ _('Status') }}</label>
+        <select id="status" name="status" class="form-control">
+            <option value="">{{ _('All') }}</option>
+            {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s|replace('_', ' ')|capitalize }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="doctor">{{ _('Doctor') }}</label>
+        <select id="doctor" name="doctor" class="form-control">
+            <option value="">{{ _('All') }}</option>
+            {% for d in doctors %}<option value="{{ d.id }}" {{ 'selected' if filters.doctor == d.id|string }}>{{ d.user.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ _('Filter') }}</button>
+    <a class="btn btn-secondary" href="{{ url_for('reception.appointments', date='') }}">{{ _('All dates') }}</a>
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>{{ _('When') }}</th><th>{{ _('Patient') }}</th><th>{{ _('Doctor') }}</th><th>{{ _('Status') }}</th><th></th></tr></thead>
+            <tbody>
+            {% for a in page.items %}
+            <tr>
+                <td data-label="{{ _('When') }}">{{ a.date.strftime('%d %b %Y') }}<br><small class="text-muted">{{ a.time.strftime('%I:%M %p') }}{% if a.is_walk_in %} · {{ _('walk-in') }}{% endif %}</small></td>
+                <td data-label="{{ _('Patient') }}">{{ a.patient.user.name }}<br><small class="text-muted">{{ a.patient.phone or '' }}</small></td>
+                <td data-label="{{ _('Doctor') }}">{{ a.doctor.user.name }}</td>
+                <td data-label="{{ _('Status') }}">{{ status_badge(a.status) }}{% if a.checked_in_at and a.status in ('pending','confirmed') %} <span class="badge badge-waiting">{{ _('checked in') }}</span>{% endif %}</td>
+                <td class="row-actions">
+                    {% if a.date == today and a.status in ('pending','confirmed') and not a.checked_in_at %}
+                        {{ action_btn(url_for('reception.check_in_view', appt_id=a.id), _('Check in'), 'btn-primary') }}
+                    {% endif %}
+                    {% if a.status == 'pending' %}{{ action_btn(url_for('reception.appointment_status', appt_id=a.id), _('Confirm'), 'btn-success', fields={'status': 'confirmed'}) }}{% endif %}
+                    {% if a.status == 'confirmed' and a.date <= today and not a.started_at %}{{ action_btn(url_for('reception.appointment_status', appt_id=a.id), _('No-show'), 'btn-secondary', confirm=_('Mark as no-show?'), fields={'status': 'no_show'}) }}{% endif %}
+                    {% if a.status in ('pending','confirmed') %}{{ action_btn(url_for('reception.appointment_status', appt_id=a.id), _('Cancel'), 'btn-danger', confirm=_('Cancel this appointment?'), fields={'status': 'cancelled'}) }}{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('calendar', 28), _('No appointments found'), _('Adjust the filters to see more.')) }}
+    {% endif %}
+</div>
+{{ pagination(page, 'reception.appointments', **active_filters) }}
+{% endblock %}

@@ -1,0 +1,192 @@
+{% from "_icons.html" import icon %}
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="description" content="MediTrack — manage appointments, patients and doctors.">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="manifest" href="{{ url_for('pwa.manifest') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+    <title>{% block title %}MediTrack{% endblock %} — MediTrack</title>
+
+    <script>
+        /* Apply the saved theme before first paint to avoid a light flash. */
+        (function () {
+            try {
+                var t = localStorage.getItem("hms-theme");
+                if (!t && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) t = "dark";
+                if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="{% if current_user.is_authenticated %}has-sidebar{% endif %}">
+    <a href="#main" class="skip-link">{{ _('Skip to content') }}</a>
+
+    {% if current_user.is_authenticated %}
+    {# nav items: (endpoint, label, icon, active-prefix). Unbuilt routes are skipped automatically. #}
+    {% if current_user.role == 'admin' %}
+        {% set nav_items = [
+            ('admin.dashboard', 'Dashboard', 'dashboard', 'admin.dashboard'),
+            ('admin.doctors', 'Doctors', 'doctor', 'admin.doctor'),
+            ('admin.departments', 'Departments', 'building', 'admin.department'),
+            ('admin.patients', 'Patients', 'users', 'admin.patient'),
+            ('admin.appointments', 'Appointments', 'calendar', 'admin.appointment'),
+            ('billing.index', 'Billing', 'receipt', 'billing.'),
+            ('admin.reports', 'Reports', 'chart', 'admin.report'),
+            ('admin.staff', 'Reception staff', 'user-plus', 'admin.staff'),
+            ('admin.audit_log', 'Audit log', 'list', 'admin.audit'),
+            ('admin.search', 'Search', 'search', 'admin.search')] %}
+    {% elif current_user.role == 'doctor' %}
+        {% set nav_items = [
+            ('doctor.dashboard', 'Dashboard', 'dashboard', 'doctor.dashboard'),
+            ('doctor.queue', 'Waiting room', 'list', 'doctor.queue'),
+            ('doctor.appointments', 'Appointments', 'calendar', 'doctor.appointment'),
+            ('doctor.patients', 'My Patients', 'users', 'doctor.patient'),
+            ('doctor.time_off', 'Time Off', 'clock', 'doctor.time_off')] %}
+    {% elif current_user.role == 'reception' %}
+        {% set nav_items = [
+            ('reception.dashboard', 'Dashboard', 'dashboard', 'reception.dashboard'),
+            ('reception.queue', 'Live queue', 'list', 'reception.queue'),
+            ('reception.walk_in', 'Walk-in', 'user-plus', 'reception.walk_in'),
+            ('reception.book', 'Book appointment', 'calendar-plus', 'reception.book'),
+            ('reception.appointments', 'Appointments', 'calendar', 'reception.appointment'),
+            ('reception.patients', 'Patients', 'users', 'reception.patient'),
+            ('billing.index', 'Billing', 'receipt', 'billing.')] %}
+    {% else %}
+        {% set nav_items = [
+            ('patient.dashboard', 'Dashboard', 'dashboard', 'patient.dashboard'),
+            ('patient.doctors', 'Find a Doctor', 'search', 'patient.doctor'),
+            ('patient.book_appointment_view', 'Book Appointment', 'calendar-plus', 'patient.book'),
+            ('patient.appointments', 'My Appointments', 'clipboard', 'patient.appointment'),
+            ('patient.medical_records', 'Medical Records', 'file', 'patient.medical'),
+            ('patient.vitals', 'My Vitals', 'heart', 'patient.vital'),
+            ('patient.billing', 'Billing', 'receipt', 'patient.billing'),
+            ('patient.family', 'Family', 'users', 'patient.family'),
+            ('patient.access_log', 'Access log', 'eye', 'patient.access'),
+            ('patient.profile', 'Profile', 'user', 'patient.profile')] %}
+    {% endif %}
+
+    <!-- ═══════ Mobile top bar ═══════ -->
+    <header class="topbar">
+        <button class="icon-btn" id="sidebarToggle" aria-label="{{ _('Open menu') }}" aria-controls="sidebar" aria-expanded="false">
+            {{ icon('menu', 24) }}
+        </button>
+        <div class="topbar-title"><span class="logo-mark">{{ icon('logo', 18) }}</span> MediTrack</div>
+        <div class="user-avatar user-avatar-sm" aria-hidden="true">{{ current_user.name[0] | upper }}</div>
+    </header>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ═══════ Sidebar Navigation ═══════ -->
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="logo-mark">{{ icon('logo', 20) }}</span>
+                <span class="logo-text">MediTrack</span>
+            </div>
+            <button class="icon-btn sidebar-close" id="sidebarClose" aria-label="{{ _('Close menu') }}">{{ icon('close', 22) }}</button>
+        </div>
+
+        <div class="sidebar-user">
+            <div class="user-avatar">{{ current_user.name[0] | upper }}</div>
+            <div class="user-info">
+                <span class="user-name">{{ current_user.name }}</span>
+                <span class="user-role badge badge-{{ current_user.role }}">{{ _(current_user.role | capitalize) }}</span>
+            </div>
+        </div>
+
+        {% if current_user.role == 'patient' and family_members|length > 1 %}
+        <div class="family-switch" role="group" aria-label="{{ _('Viewing as') }}">
+            <span class="family-label">{{ _('Viewing as') }}</span>
+            {% for m in family_members %}
+            <form method="POST" action="{{ url_for('patient.switch', patient_id=m.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="family-chip {{ 'active' if acting and acting.id == m.id }}"
+                        {% if acting and acting.id == m.id %}aria-current="true"{% endif %}>
+                    <span class="chip-avatar">{{ m.user.name[0]|upper }}</span>{{ m.user.name.split()[0] }}
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <nav class="sidebar-nav">
+            {% for endpoint, label, ic, prefix in nav_items %}
+            {% set url = nav_url(endpoint) %}
+            {% if url %}
+            <a href="{{ url }}" class="nav-link {% if (request.endpoint or '').startswith(prefix) %}active{% endif %}"
+               {% if (request.endpoint or '').startswith(prefix) %}aria-current="page"{% endif %}>
+                <span class="nav-icon">{{ icon(ic) }}</span> {{ _(label) }}
+            </a>
+            {% endif %}
+            {% endfor %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-tools">
+                <button type="button" class="tool-btn" data-theme-toggle aria-label="{{ _('Toggle dark mode') }}" title="{{ _('Toggle dark mode') }}">
+                    <span class="icon-light">{{ icon('moon', 18) }}</span><span class="icon-dark">{{ icon('sun', 18) }}</span>
+                </button>
+                <span class="lang-switch" aria-label="{{ _('Language') }}">
+                    {% for code, name in languages.items() %}
+                    <a href="{{ url_for('i18n.set_language', code=code) }}" class="{{ 'active' if code == current_lang }}" lang="{{ code }}" hreflang="{{ code }}">{{ code|upper }}</a>
+                    {% endfor %}
+                </span>
+                <button type="button" class="tool-btn hidden" id="installApp" aria-label="{{ _('Install app') }}" title="{{ _('Install app') }}">{{ icon('download', 18) }}</button>
+            </div>
+            <a href="{{ url_for('auth.security_settings') }}" class="nav-link {% if request.endpoint in ('auth.security_settings',) %}active{% endif %}">
+                <span class="nav-icon">{{ icon('lock') }}</span> {{ _('Two-factor login') }}
+                {% if current_user.totp_enabled %}<span class="mini-badge">{{ _('On') }}</span>{% endif %}
+            </a>
+            <a href="{{ url_for('auth.change_password') }}" class="nav-link {% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                <span class="nav-icon">{{ icon('shield') }}</span> {{ _('Change Password') }}
+            </a>
+            <form method="POST" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="nav-link logout-link nav-button">
+                    <span class="nav-icon">{{ icon('logout') }}</span> {{ _('Logout') }}
+                </button>
+            </form>
+        </div>
+    </aside>
+    {% else %}
+    <div class="auth-tools">
+        <button type="button" class="tool-btn" data-theme-toggle aria-label="{{ _('Toggle dark mode') }}" title="{{ _('Toggle dark mode') }}">
+            <span class="icon-light">{{ icon('moon', 18) }}</span><span class="icon-dark">{{ icon('sun', 18) }}</span>
+        </button>
+        <span class="lang-switch" aria-label="{{ _('Language') }}">
+            {% for code, name in languages.items() %}
+            <a href="{{ url_for('i18n.set_language', code=code) }}" class="{{ 'active' if code == current_lang }}" lang="{{ code }}" hreflang="{{ code }}">{{ code|upper }}</a>
+            {% endfor %}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- ═══════ Main Content ═══════ -->
+    <main id="main" class="main-content {% if not current_user.is_authenticated %}full-width{% endif %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container" aria-live="polite">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}" role="alert">
+                <span class="flash-icon">{{ icon('check-circle' if category == 'success' else ('info' if category == 'info' else 'alert'), 18) }}</span>
+                <span class="flash-text">{{ _(message) }}</span>
+                <button type="button" class="flash-close" aria-label="Dismiss">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ asset('js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

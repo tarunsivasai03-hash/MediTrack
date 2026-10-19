@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, action_btn, empty %}
+{% block title %}Patients{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>Patients</h1><p class="text-muted">{{ page.total }} registered</p></div></div>
+
+<form method="GET" class="filter-bar" role="search">
+    <div class="form-group" style="flex:1">
+        <label class="form-label" for="q">Search</label>
+        <input id="q" name="q" value="{{ q }}" class="form-control" placeholder="Name, email or phone">
+    </div>
+    <button class="btn btn-primary" type="submit">Search</button>
+    {% if q %}<a class="btn btn-secondary" href="{{ url_for('admin.patients') }}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>Patient</th><th>Age / Gender</th><th>Phone</th><th>Blood</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for p in page.items %}
+            <tr>
+                <td data-label="Patient"><strong>{{ p.user.name }}</strong><br><small class="text-muted">{% if p.guardian %}Family member of {{ p.guardian.name }}{% elif not p.user.can_login %}Walk-in (no account){% else %}{{ p.user.email }}{% endif %}</small></td>
+                <td data-label="Age / Gender">{{ p.age if p.age is not none else '—' }} · {{ p.gender or '—' }}</td>
+                <td data-label="Phone">{{ p.phone or '—' }}</td>
+                <td data-label="Blood">{{ p.blood_group or '—' }}</td>
+                <td data-label="Status"><span class="badge badge-{{ 'active' if p.user.is_active else 'inactive' }}">{{ 'active' if p.user.is_active else 'inactive' }}</span></td>
+                <td class="row-actions">
+                    {{ action_btn(url_for('admin.patient_toggle', patient_id=p.id),
+                                  'Deactivate' if p.user.is_active else 'Activate',
+                                  'btn-danger' if p.user.is_active else 'btn-success',
+                                  confirm='Deactivate ' ~ p.user.name ~ '? They will be signed out.' if p.user.is_active else None) }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('users', 28), 'No patients found', 'Patients appear here after they register.') }}
+    {% endif %}
+</div>
+{{ pagination(page, 'admin.patients', q=q) }}
+{% endblock %}

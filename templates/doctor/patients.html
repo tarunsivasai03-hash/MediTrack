@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, empty %}
+{% block title %}My Patients{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>My patients</h1><p class="text-muted">{{ page.total }} patient{{ '' if page.total == 1 else 's' }}</p></div></div>
+
+<form method="GET" class="filter-bar" role="search">
+    <div class="form-group" style="flex:1">
+        <label class="form-label" for="q">Search by name</label>
+        <input id="q" name="q" value="{{ q }}" class="form-control">
+    </div>
+    <button class="btn btn-primary" type="submit">Search</button>
+    {% if q %}<a class="btn btn-secondary" href="{{ url_for('doctor.patients') }}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>Patient</th><th>Age / Gender</th><th>Blood</th><th>Phone</th><th></th></tr></thead>
+            <tbody>
+            {% for p in page.items %}
+            <tr>
+                <td data-label="Patient"><strong>{{ p.user.name }}</strong></td>
+                <td data-label="Age / Gender">{{ p.age if p.age is not none else '—' }} · {{ p.gender or '—' }}</td>
+                <td data-label="Blood">{{ p.blood_group or '—' }}</td>
+                <td data-label="Phone">{{ p.phone or '—' }}</td>
+                <td class="row-actions"><a class="btn btn-sm btn-secondary" href="{{ url_for('doctor.patient_detail', patient_id=p.id) }}">History</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('users', 28), 'No patients yet', 'Patients who book with you will be listed here.') }}
+    {% endif %}
+</div>
+{{ pagination(page, 'doctor.patients', q=q) }}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, action_btn, empty, status_badge %}
+{% block title %}My Appointments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>My appointments</h1></div>
+    <a href="{{ url_for('patient.book_appointment_view') }}" class="btn btn-primary">{{ icon('calendar-plus', 18) }} Book new</a>
+</div>
+
+<div class="tabs" role="tablist">
+    <a role="tab" class="tab {{ 'active' if tab == 'upcoming' }}" href="{{ url_for('patient.appointments', tab='upcoming') }}">Upcoming</a>
+    <a role="tab" class="tab {{ 'active' if tab == 'past' }}" href="{{ url_for('patient.appointments', tab='past') }}">Past &amp; cancelled</a>
+</div>
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>When</th><th>Doctor</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for a in page.items %}
+            <tr>
+                <td data-label="When">{{ a.date.strftime('%d %b %Y') }}<br><small class="text-muted">{{ a.time.strftime('%I:%M %p') }}</small></td>
+                <td data-label="Doctor">{{ a.doctor.user.name }}<br><small class="text-muted">{{ a.doctor.specialization }}</small></td>
+                <td data-label="Reason" class="cell-wrap">{{ a.reason or '—' }}</td>
+                <td data-label="Status">{{ status_badge(a.status) }}</td>
+                <td class="row-actions">
+                    <a class="btn btn-sm btn-secondary" href="{{ url_for('patient.appointment_detail', appt_id=a.id) }}">Details</a>
+                    {% if a.status in ('pending', 'confirmed') %}
+                        <a class="btn btn-sm btn-secondary" href="{{ url_for('patient.reschedule_appointment_view', appt_id=a.id) }}">Reschedule</a>
+                        {{ action_btn(url_for('patient.cancel_appointment', appt_id=a.id), 'Cancel', 'btn-danger', confirm='Cancel this appointment?') }}
+                    {% endif %}
+                    {% if a.medical_record %}
+                        <a class="btn btn-sm btn-secondary" href="{{ url_for('patient.medical_record_detail', record_id=a.medical_record.id) }}">View record</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    {{ empty(icon('calendar', 28), 'Nothing here yet', 'Your ' ~ ('upcoming' if tab == 'upcoming' else 'past') ~ ' appointments will appear here.') }}
+    {% endif %}
+</div>
+{{ pagination(page, 'patient.appointments', tab=tab) }}
+{% endblock %}

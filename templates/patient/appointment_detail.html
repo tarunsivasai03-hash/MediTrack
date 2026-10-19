@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import status_badge, action_btn %}
+{% from "_clinical.html" import attachments_panel, rx_table %}
+{% block title %}{{ _('Visit details') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ _('Visit with') }} {{ appt.doctor.user.name }}</h1>
+        <p class="text-muted">{{ appt.date.strftime('%A, %d %B %Y') }} · {{ appt.time.strftime('%I:%M %p') }} · {{ status_badge(appt.status) }}
+            {% if appt.patient.user_id != current_user.id %} · {{ appt.patient.user.name }}{% endif %}</p>
+    </div>
+    <a href="{{ url_for('patient.appointments') }}" class="btn btn-secondary">{{ _('Back') }}</a>
+</div>
+
+<div class="dashboard-grid">
+    <div>
+        <div class="card mb-2">
+            <div class="card-header">{{ _('Details') }}</div>
+            <div class="card-body">
+                <ul class="info-list">
+                    <li><span>{{ _('Doctor') }}</span><span>{{ appt.doctor.user.name }} · {{ appt.doctor.specialization }}</span></li>
+                    <li><span>{{ _('Reason') }}</span><span class="pre-wrap">{{ appt.reason or '—' }}</span></li>
+                    <li><span>{{ _('Fee') }}</span><span>₹{{ '%.0f'|format(appt.doctor.consultation_fee or 0) }}</span></li>
+                    {% if appt.invoice %}
+                    <li><span>{{ _('Bill') }}</span><span>{{ appt.invoice.number }} · <span class="badge badge-{{ appt.invoice.status }}">{{ appt.invoice.status }}</span>
+                        · <a href="{{ url_for('billing.pdf', inv_id=appt.invoice.id) }}">{{ _('Receipt') if appt.invoice.status == 'paid' else _('Invoice') }} PDF</a></span></li>
+                    {% endif %}
+                </ul>
+                {% if appt.status in ('pending', 'confirmed') and appt.date >= today %}
+                <div class="btn-group mt-2">
+                    <a class="btn btn-secondary btn-sm" href="{{ url_for('patient.reschedule_appointment_view', appt_id=appt.id) }}">{{ _('Reschedule') }}</a>
+                    {{ action_btn(url_for('patient.cancel_appointment', appt_id=appt.id), _('Cancel'), 'btn-danger', confirm=_('Cancel this appointment?')) }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if appt.medical_record %}
+        {% set r = appt.medical_record %}
+        <div class="card mb-2">
+            <div class="card-header">
+                {{ _('Medical record') }}
+                <span class="btn-group">
+                    <a class="btn btn-sm btn-secondary" href="{{ url_for('files.prescription_pdf', record_id=r.id) }}">{{ icon('file', 16) }} {{ _('Prescription PDF') }}</a>
+                    {% if r.follow_up_date %}
+                    <a class="btn btn-sm btn-primary" href="{{ url_for('patient.book_appointment_view', doctor=r.doctor_id, date=r.follow_up_date.isoformat(), reason='Follow-up: ' ~ (r.diagnosis|truncate(80))) }}">{{ _('Book follow-up') }}</a>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <h3>{{ _('Diagnosis') }}</h3><p class="pre-wrap">{{ r.diagnosis }}</p>
+                <h3 class="mt-2">{{ _('Treatment') }}</h3><p class="pre-wrap">{{ r.treatment }}</p>
+                <h3 class="mt-2">{{ _('Medicines') }}</h3>{{ rx_table(r) }}
+                {% if r.notes %}<h3 class="mt-2">{{ _('Notes') }}</h3><p class="pre-wrap">{{ r.notes }}</p>{% endif %}
+                {% if r.follow_up_date %}<p class="mt-2"><span class="badge badge-confirmed">{{ _('Follow-up') }} {{ r.follow_up_date.strftime('%d %b %Y') }}</span></p>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if appt.status == 'completed' %}
+        <div class="card">
+            <div class="card-header">{{ _('Rate this visit') if not appt.rating else _('Your review') }}</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('patient.rate', appt_id=appt.id) }}" novalidate>
+                    {{ rating_form.hidden_tag() }}
+                    <div class="star-input" role="radiogroup" aria-label="{{ _('Your rating') }}">
+                        {% for value, label in rating_form.stars.choices %}
+                        <input type="radio" name="stars" id="star{{ value }}" value="{{ value }}" {{ 'checked' if rating_form.stars.data == value }}>
+                        <label for="star{{ value }}" title="{{ value }} ★">★</label>
+                        {% endfor %}
+                    </div>
+                    <div class="form-group mt-1">{{ rating_form.comment(class="form-control") }}</div>
+                    {{ rating_form.submit(class="btn btn-primary btn-sm") }}
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div>{{ attachments_panel(appt, upload_form, current_user.id) }}</div>
+</div>
+{% endblock %}

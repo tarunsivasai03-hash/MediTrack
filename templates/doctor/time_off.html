@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import action_btn, empty %}
+{% block title %}Time Off{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>Time off</h1><p class="text-muted">Block holidays or a few hours. Blocked slots can't be booked.</p></div></div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">Upcoming time off</div>
+        {% if upcoming %}
+        <div class="table-responsive">
+            <table class="table-stack">
+                <thead><tr><th>Date</th><th>Period</th><th>Reason</th><th></th></tr></thead>
+                <tbody>
+                {% for t in upcoming %}
+                <tr>
+                    <td data-label="Date">{{ t.date.strftime('%a, %d %b %Y') }}</td>
+                    <td data-label="Period">{% if t.all_day %}All day{% else %}{{ t.start_time.strftime('%I:%M %p') }} – {{ t.end_time.strftime('%I:%M %p') }}{% endif %}</td>
+                    <td data-label="Reason" class="cell-wrap">{{ t.reason or '—' }}</td>
+                    <td class="row-actions">{{ action_btn(url_for('doctor.time_off_delete', entry_id=t.id), 'Remove', 'btn-danger', confirm='Remove this time off? The slots become bookable again.') }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        {{ empty(icon('clock', 28), 'No time off scheduled', 'Add a day or a time range using the form.') }}
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">Block time</div>
+        <div class="card-body">
+            <form method="POST" novalidate id="timeOffForm">
+                {{ form.hidden_tag() }}
+                <div class="form-group {% if form.date.errors %}has-error{% endif %}">
+                    {{ form.date.label(class="form-label") }}
+                    {{ form.date(class="form-control", type="date") }}
+                    {% for e in form.date.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                </div>
+                <div class="form-group form-check">
+                    {{ form.all_day(class="form-check-input") }} {{ form.all_day.label(class="form-check-label") }}
+                </div>
+                <div id="rangeFields" class="form-grid {{ 'hidden' if form.all_day.data }}">
+                    <div class="form-group {% if form.start_time.errors %}has-error{% endif %}">
+                        {{ form.start_time.label(class="form-label") }}
+                        {{ form.start_time(class="form-control", type="time") }}
+                    </div>
+                    <div class="form-group {% if form.end_time.errors %}has-error{% endif %}">
+                        {{ form.end_time.label(class="form-label") }}
+                        {{ form.end_time(class="form-control", type="time") }}
+                        {% for e in form.end_time.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                    </div>
+                </div>
+                <div class="form-group">
+                    {{ form.reason.label(class="form-label") }}
+                    {{ form.reason(class="form-control") }}
+                </div>
+                {{ form.submit(class="btn btn-primary btn-block") }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const box = document.getElementById("all_day"), range = document.getElementById("rangeFields");
+    const sync = () => range.classList.toggle("hidden", box.checked);
+    box.addEventListener("change", sync); sync();
+})();
+</script>
+{% endblock %}

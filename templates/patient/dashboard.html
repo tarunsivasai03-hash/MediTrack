@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_clinical.html" import vitals_chart %}
+{% block title %}{{ _('Dashboard') }}{% endblock %}
+
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>{{ _('Hello') }}, {{ (profile.user.name if profile else current_user.name).split()[0] }} 👋</h1>
+    <p>{% if profile and profile.user_id != current_user.id %}{{ _("You're viewing") }} {{ profile.user.name }}{{ _("'s health") }}.{% else %}{{ _('Your health at a glance.') }}{% endif %}</p>
+    {% if nav_url('patient.book_appointment_view') %}
+    <a href="{{ nav_url('patient.book_appointment_view') }}" class="btn btn-light">{{ icon('calendar-plus', 18) }} {{ _('Book an appointment') }}</a>
+    {% endif %}
+</section>
+
+{% if due and due.count %}
+<div class="alert-box alert-warning">
+    {{ _('Outstanding balance') }}: <strong>₹{{ '{:,.2f}'.format(due.amount) }}</strong>
+    ({{ due.count }} {{ _('unpaid bills') }}) · <a href="{{ url_for('patient.billing') }}">{{ _('View bills') }}</a>
+</div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon teal">{{ icon('calendar', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.upcoming }}</h3><p>{{ _('Upcoming') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon green">{{ icon('check-circle', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.completed }}</h3><p>{{ _('Completed visits') }}</p></div></div>
+    <div class="stat-card"><div class="stat-icon indigo">{{ icon('file', 24) }}</div>
+        <div class="stat-details"><h3>{{ counts.records }}</h3><p>{{ _('Medical records') }}</p></div></div>
+</div>
+
+{% if followups %}
+<div class="card mb-2">
+    <div class="card-header">{{ _('Follow-ups to book') }}</div>
+    <ul class="file-list">
+        {% for r in followups %}
+        <li>
+            <span class="file-icon">{{ icon('clock', 16) }}</span>
+            <div class="file-meta">
+                <strong>{{ r.doctor.user.name }}</strong> {{ _('asked to see you by') }} {{ r.follow_up_date.strftime('%d %b %Y') }}
+                <small class="text-muted">{{ r.diagnosis|truncate(70) }}</small>
+            </div>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('patient.book_appointment_view', doctor=r.doctor_id, date=r.follow_up_date.isoformat(), reason='Follow-up: ' ~ (r.diagnosis|truncate(80))) }}">{{ _('Book now') }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">{{ _('Upcoming appointments') }}</div>
+        {% if upcoming %}
+        <div class="table-responsive">
+            <table class="table-stack">
+                <thead><tr><th>{{ _('Date') }}</th><th>{{ _('Time') }}</th><th>{{ _('Doctor') }}</th><th>{{ _('Status') }}</th></tr></thead>
+                <tbody>
+                {% for a in upcoming %}
+                <tr>
+                    <td data-label="{{ _('Date') }}"><a href="{{ url_for('patient.appointment_detail', appt_id=a.id) }}">{{ a.date.strftime('%d %b %Y') }}</a></td>
+                    <td data-label="{{ _('Time') }}">{{ a.time.strftime('%I:%M %p') }}</td>
+                    <td data-label="{{ _('Doctor') }}">{{ a.doctor.user.name }}<br><small class="text-muted">{{ a.doctor.specialization }}</small></td>
+                    <td data-label="{{ _('Status') }}"><span class="badge badge-{{ a.status }}">{{ a.status|replace('_', ' ') }}</span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="stat-icon teal">{{ icon('calendar', 28) }}</div>
+            <h3>{{ _('No upcoming appointments') }}</h3>
+            <p>{{ _('When you book a visit it will show up here.') }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">{{ _('My details') }}</div>
+        <div class="card-body">
+            {% if profile %}
+            <ul class="info-list">
+                <li><span>{{ _('Age') }}</span><span>{{ profile.age if profile.age is not none else '—' }}</span></li>
+                <li><span>{{ _('Gender') }}</span><span>{{ profile.gender or '—' }}</span></li>
+                <li><span>{{ _('Blood group') }}</span><span>{{ profile.blood_group or '—' }}</span></li>
+                <li><span>{{ _('Phone') }}</span><span>{{ profile.phone or '—' }}</span></li>
+            </ul>
+            {% else %}<p class="text-muted">{{ _('No profile on file.') }}</p>{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        {{ _('Vitals trend') }}
+        {% if nav_url('patient.vitals') %}<a class="btn btn-sm btn-secondary" href="{{ nav_url('patient.vitals') }}">{{ icon('heart', 16) }} {{ _('Log a reading') }}</a>{% endif %}
+    </div>
+    {% if has_vitals %}
+    {{ vitals_chart(url_for('api.my_vitals')) }}
+    {% else %}
+    <div class="empty-state">
+        <div class="stat-icon teal">{{ icon('heart', 28) }}</div>
+        <h3>{{ _('Track your health') }}</h3>
+        <p>{{ _('Log blood pressure, weight or blood sugar and see how they change over time.') }}</p>
+        <a class="btn btn-primary btn-sm mt-2" href="{{ url_for('patient.vitals') }}">{{ _('Add first reading') }}</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}{% if has_vitals %}<script src="{{ url_for('static', filename='js/vitals-chart.js') }}"></script>{% endif %}{% endblock %}

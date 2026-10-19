@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_stars.html" import stars %}
+{% block title %}{{ doctor.user.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="doctor-head">
+        <span class="doc-avatar" style="width:60px;height:60px;font-size:1.5rem" aria-hidden="true">{{ doctor.user.name.replace('Dr. ', '')[0]|upper }}</span>
+        <div><h1>{{ doctor.user.name }}</h1><p class="text-muted">{{ doctor.department.name if doctor.department else doctor.specialization }} · {{ doctor.qualification }}</p></div>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('patient.doctors') }}" class="btn btn-secondary">{{ _('Back') }}</a>
+        <a href="{{ url_for('patient.book_appointment_view', doctor=doctor.id) }}" class="btn btn-primary">{{ icon('calendar-plus', 16) }} {{ _('Book') }}</a>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">{{ _('Patient reviews') }}
+            {% if summary %}<span>{{ stars(summary[0]) }} <small class="text-muted">{{ summary[0] }} ({{ summary[1] }})</small></span>{% endif %}</div>
+        <div class="card-body">
+            {% for r in reviews %}
+            <div class="review">
+                {{ stars(r.stars) }} <small class="text-muted">{{ r.created_at.strftime('%d %b %Y') }}</small>
+                {% if r.comment %}<p class="pre-wrap mt-1">{{ r.comment }}</p>{% endif %}
+            </div>
+            {% else %}<p class="text-muted">{{ _('No reviews yet') }}</p>{% endfor %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">{{ _('Details') }}</div>
+        <div class="card-body"><ul class="info-list">
+            <li><span>{{ _('Experience') }}</span><span>{{ doctor.experience_years }} {{ _('yrs') }}</span></li>
+            <li><span>{{ _('Fee') }}</span><span>₹{{ '%.0f'|format(doctor.consultation_fee or 0) }}</span></li>
+            <li><span>{{ _('Works') }}</span><span>{{ doctor.available_days.replace(',', ', ') }}</span></li>
+            <li><span>{{ _('Hours') }}</span><span>{{ doctor.work_start.strftime('%I:%M %p') }} – {{ doctor.work_end.strftime('%I:%M %p') }}</span></li>
+            <li><span>{{ _('Visit length') }}</span><span>{{ doctor.slot_minutes }} min</span></li>
+        </ul></div>
+    </div>
+</div>
+{% endblock %}

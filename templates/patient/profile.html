@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+
+{% macro field(f, extra={}) %}
+<div class="form-group {% if f.errors %}has-error{% endif %}">
+    {{ f.label(class="form-label") }}
+    {{ f(class="form-control", **extra) }}
+    {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="page-header"><div><h1>My profile</h1><p class="text-muted">{{ current_user.email }}</p></div></div>
+<div class="card" style="max-width:760px"><div class="card-body">
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-grid">
+            {{ field(form.name) }}
+            {{ field(form.age, {"inputmode": "numeric"}) }}
+            {{ field(form.gender) }}
+            {{ field(form.phone, {"type": "tel"}) }}
+            {{ field(form.blood_group) }}
+        </div>
+        {{ field(form.address) }}
+        <h3 class="mb-1 mt-2">Medical background</h3>
+        <p class="text-muted mb-1">Your doctors see this at every visit, so keep it current.</p>
+        {{ field(form.allergies) }}
+        {{ field(form.chronic_conditions) }}
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div></div>
+{% endblock %}

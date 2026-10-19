@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_queue_board.html" import queue_board %}
+{% block title %}{{ _('Live queue') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ _('Live queue') }}</h1><p class="text-muted">{{ _('Check patients in as they arrive. This page refreshes by itself.') }}</p></div>
+    <a href="{{ url_for('reception.walk_in') }}" class="btn btn-primary">{{ icon('user-plus', 18) }} {{ _('Add walk-in') }}</a>
+</div>
+{{ queue_board(doctors) }}
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/queue.js') }}"></script>{% endblock %}

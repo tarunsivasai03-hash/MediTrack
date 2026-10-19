@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_macros.html" import pagination, empty %}
+{% block title %}{{ _('Billing') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Billing') }}</h1><p class="text-muted">{{ _('Pay at the reception desk. Download a receipt once paid.') }}</p></div></div>
+
+{% if due %}<div class="alert-box alert-warning">{{ _('Outstanding balance') }}: <strong>₹{{ '{:,.2f}'.format(due) }}</strong></div>{% endif %}
+
+<div class="card">
+    {% if page.items %}
+    <div class="table-responsive">
+        <table class="table-stack">
+            <thead><tr><th>{{ _('Invoice') }}</th><th>{{ _('Visit') }}</th><th>{{ _('Total') }}</th><th>{{ _('Status') }}</th><th></th></tr></thead>
+            <tbody>
+            {% for i in page.items %}
+            <tr>
+                <td data-label="{{ _('Invoice') }}">{{ i.number }}</td>
+                <td data-label="{{ _('Visit') }}">{{ i.appointment.date.strftime('%d %b %Y') }}<br><small class="text-muted">{{ i.doctor.user.name }}</small></td>
+                <td data-label="{{ _('Total') }}">₹{{ '{:,.2f}'.format(i.total) }}</td>
+                <td data-label="{{ _('Status') }}"><span class="badge badge-{{ i.status }}">{{ i.status }}</span></td>
+                <td class="row-actions"><a class="btn btn-sm btn-secondary" href="{{ url_for('billing.pdf', inv_id=i.id) }}">{{ icon('download', 14) }} {{ _('Receipt') if i.status == 'paid' else _('Invoice') }}</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}{{ empty(icon('receipt', 28), _('No bills yet'), _('A bill appears here after each completed visit.')) }}{% endif %}
+</div>
+{{ pagination(page, 'patient.billing') }}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Family member') }}{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>{{ _('Edit family member') if member else _('Add family member') }}</h1></div>
+    <a href="{{ url_for('patient.family') }}" class="btn btn-secondary">{{ _('Back') }}</a></div>
+<div class="card" style="max-width:640px"><div class="card-body">
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-grid">
+            {% for f in [form.name, form.relationship, form.age, form.gender, form.blood_group, form.phone] %}
+            <div class="form-group {% if f.errors %}has-error{% endif %}">
+                {{ f.label(class="form-label") }}{{ f(class="form-control") }}
+                {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div></div>
+{% endblock %}

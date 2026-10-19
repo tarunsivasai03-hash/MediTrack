@@ -1,0 +1,118 @@
+{# Clinical building blocks shared by patient and doctor pages. #}
+{% from "_macros.html" import action_btn %}
+
+{% macro size_label(n) %}{{ '%.0f KB'|format(n / 1024) if n < 1048576 else '%.1f MB'|format(n / 1048576) }}{% endmacro %}
+
+{# Files attached to a visit, with an upload form. `me_id` = current user's id. #}
+{% macro attachments_panel(appt, form, me_id) %}
+<div class="card">
+    <div class="card-header">Files <span class="text-muted" style="font-weight:400">{{ appt.attachments|length }}</span></div>
+    {% if appt.attachments %}
+    <ul class="file-list">
+        {% for f in appt.attachments %}
+        <li>
+            <span class="file-icon">{{ 'PDF' if f.content_type == 'application/pdf' else 'IMG' }}</span>
+            <div class="file-meta">
+                <a href="{{ url_for('files.download', att_id=f.id) }}">{{ f.original_name }}</a>
+                <small class="text-muted">
+                    {{ f.category.replace('_', ' ')|capitalize }} · {{ size_label(f.size) }} ·
+                    {{ f.created_at.strftime('%d %b %Y') }} · by {{ f.uploaded_by.name }}
+                    {% if f.description %}<br>{{ f.description }}{% endif %}
+                </small>
+            </div>
+            {% if f.uploaded_by_id == me_id %}
+            {{ action_btn(url_for('files.delete', att_id=f.id), 'Remove', 'btn-danger', confirm='Remove this file?') }}
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="card-body text-muted">No files yet.</div>
+    {% endif %}
+
+    {% if appt.status != 'cancelled' %}
+    <div class="card-body upload-box">
+        <form method="POST" action="{{ url_for('files.upload', appt_id=appt.id) }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <div class="form-grid">
+                <div class="form-group">
+                    {{ form.file.label(class="form-label") }}
+                    {{ form.file(class="form-control", accept=".pdf,.png,.jpg,.jpeg") }}
+                </div>
+                <div class="form-group">
+                    {{ form.category.label(class="form-label") }}
+                    {{ form.category(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control") }}
+            </div>
+            <small class="text-muted">PDF, PNG or JPG, up to 5 MB.</small>
+            <div class="mt-1">{{ form.submit(class="btn btn-primary btn-sm") }}</div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Allergy / chronic-condition banner for doctors #}
+{% macro clinical_alert(patient) %}
+{% if patient.allergies or patient.chronic_conditions %}
+<div class="alert-box alert-warning" role="note">
+    {% if patient.allergies %}<div><strong>Allergies:</strong> <span class="pre-wrap">{{ patient.allergies }}</span></div>{% endif %}
+    {% if patient.chronic_conditions %}<div><strong>Chronic conditions:</strong> <span class="pre-wrap">{{ patient.chronic_conditions }}</span></div>{% endif %}
+</div>
+{% else %}
+<div class="alert-box alert-neutral">No allergies or chronic conditions recorded.</div>
+{% endif %}
+{% endmacro %}
+
+{# Prescription table for a record #}
+{% macro rx_table(record) %}
+{% if record.items %}
+<div class="table-responsive">
+    <table class="table-stack">
+        <thead><tr><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th></tr></thead>
+        <tbody>
+        {% for it in record.items %}
+        <tr>
+            <td data-label="Medicine"><strong>{{ it.medicine }}</strong>{% if it.instructions %}<br><small class="text-muted">{{ it.instructions }}</small>{% endif %}</td>
+            <td data-label="Dose">{{ it.dose or '—' }}</td>
+            <td data-label="Frequency">{{ it.frequency or '—' }}</td>
+            <td data-label="Duration">{{ it.duration or '—' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% if record.prescription %}<p class="pre-wrap mt-1">{{ record.prescription }}</p>{% endif %}
+{% if not record.items and not record.prescription %}<p class="text-muted">No medicines prescribed.</p>{% endif %}
+{% endmacro %}
+
+{# Vitals form fields (shared by the patient page and the doctor visit page) #}
+{% macro vitals_fields(form) %}
+<div class="form-grid">
+    {% for f in [form.recorded_on, form.weight_kg, form.systolic, form.diastolic, form.sugar_mgdl, form.notes] %}
+    <div class="form-group {% if f.errors %}has-error{% endif %}">
+        {{ f.label(class="form-label") }}
+        {{ f(class="form-control", type="date") if f.name == 'recorded_on' else f(class="form-control") }}
+        {% for e in f.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# Chart with metric tabs. data-url returns the vitals JSON; see static/js/vitals-chart.js #}
+{% macro vitals_chart(url) %}
+<div class="vitals-chart" data-url="{{ url }}">
+    <div class="tabs chart-tabs" role="tablist">
+        <button type="button" class="tab active" data-metric="bp">Blood pressure</button>
+        <button type="button" class="tab" data-metric="weight">Weight</button>
+        <button type="button" class="tab" data-metric="sugar">Blood sugar</button>
+    </div>
+    <div class="chart-container"><canvas aria-label="Vitals trend" role="img"></canvas></div>
+    <p class="text-muted vitals-empty hidden" style="padding:1rem">No readings in the last 90 days.</p>
+</div>
+{% endmacro %}
