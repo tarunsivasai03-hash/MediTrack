@@ -140,3 +140,5 @@ python -m pytest            # about 3 minutes; uses an in-memory database
 - The service worker caches only public static files and an offline page. It never stores pages, API responses or documents.
 - Online payment is not integrated: staff record payments (`cash`, `card`, `upi`, `other`).
 - Failed sign-ins are counted per email address, so someone can deliberately lock another person's account for 15 minutes.
+#   M e d i T r a c k  
+ 
